@@ -39,12 +39,8 @@ app.include_router(leave.router)
 app.include_router(payroll.router)
 app.include_router(departments.router)
 
-# TEMPLATES ROUTER - DISABLED PER USER DIRECTIVE
-# app.include_router(views.router)
-
-# Mount React SPA distribution static files if frontend/dist exists
-if os.path.exists("frontend/dist"):
-    app.mount("/", StaticFiles(directory="frontend/dist", html=True), name="spa")
+# Include Web UI Jinja2 templates router
+app.include_router(views.router)
 
 
 
