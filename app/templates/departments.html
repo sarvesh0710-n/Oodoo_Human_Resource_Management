@@ -49,11 +49,11 @@
     </div>
 </div>
 
-<!-- Create Department Modal -->
+<!-- Create / Edit Department Modal -->
 <div id="dept-modal" class="modal-backdrop">
     <div class="modal-content">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-            <h3 class="card-title" style="margin: 0;">Create Department</h3>
+            <h3 id="dept-modal-title" class="card-title" style="margin: 0;">Create Department</h3>
             <button onclick="closeDeptModal()" style="background: transparent; border: none; font-size: 1.25rem; cursor: pointer; color: var(--slate-muted);">&times;</button>
         </div>
 
@@ -89,9 +89,30 @@
 
 {% block extra_scripts %}
 <script>
-    function openDeptModal() {
+    let editingDeptId = null;
+
+    function openDeptModal(dept = null) {
+        const titleEl = document.getElementById('dept-modal-title');
+        const nameIn = document.getElementById('dept_name');
+        const descIn = document.getElementById('dept_description');
+        const mgrIn = document.getElementById('dept_manager_id');
+
+        if (dept) {
+            editingDeptId = dept.id;
+            titleEl.textContent = 'Edit Department';
+            nameIn.value = dept.name || '';
+            descIn.value = dept.description || '';
+            mgrIn.value = dept.manager_id ? String(dept.manager_id) : '';
+        } else {
+            editingDeptId = null;
+            titleEl.textContent = 'Create Department';
+            nameIn.value = '';
+            descIn.value = '';
+            mgrIn.value = '';
+        }
         document.getElementById('dept-modal').classList.add('open');
     }
+
     function closeDeptModal() {
         document.getElementById('dept-modal').classList.remove('open');
     }
@@ -100,6 +121,7 @@
         try {
             const res = await fetch('/api/departments');
             const data = await res.json();
+            window._allDepartments = data;
 
             const grid = document.getElementById('departments-grid');
             const tbody = document.getElementById('departments-table-body');
@@ -130,7 +152,7 @@
                     <td>${escapeHtml(d.description || '—')}</td>
                     <td>${d.manager_id ? 'Emp #' + d.manager_id : 'Unassigned'}</td>
                     <td><span class="role-badge employee">${d.employee_count || 0} Members</span></td>
-                    <td><button class="btn btn-secondary btn-sm">Edit</button></td>
+                    <td><button onclick="openDeptModal(window._allDepartments.find(x => x.id === ${d.id}))" class="btn btn-secondary btn-sm">Edit</button></td>
                 </tr>
             `).join('');
 
@@ -148,9 +170,12 @@
             manager_id: mgrVal ? parseInt(mgrVal) : null
         };
 
+        const url = editingDeptId ? `/api/departments/${editingDeptId}` : '/api/departments';
+        const method = editingDeptId ? 'PATCH' : 'POST';
+
         try {
-            const res = await fetch('/api/departments', {
-                method: 'POST',
+            const res = await fetch(url, {
+                method: method,
                 headers: { 
                     'Content-Type': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest'
@@ -159,12 +184,12 @@
             });
 
             if (res.ok) {
-                showToast('Department created successfully!');
+                showToast(editingDeptId ? 'Department updated successfully!' : 'Department created successfully!');
                 closeDeptModal();
                 loadDepartments();
             } else {
                 const data = await res.json();
-                showToast(data.detail || 'Creation failed', 'error');
+                showToast(data.detail || 'Saving failed', 'error');
             }
         } catch (err) {
             showToast('Server error while saving department', 'error');

@@ -41,6 +41,7 @@ class EmployeeRead(BaseModel):
     id: int
     user_id: int
     department_id: Optional[int] = None
+    department_name: Optional[str] = None
     manager_id: Optional[int] = None
     first_name: str
     last_name: str

@@ -39,6 +39,10 @@ class Employee(Base):
     department: Mapped[Optional["Department"]] = relationship(
         "Department", foreign_keys=[department_id], back_populates="employees"
     )
+
+    @property
+    def department_name(self) -> Optional[str]:
+        return self.department.name if self.department else None
     manager: Mapped[Optional["Employee"]] = relationship(
         "Employee", remote_side=[id], foreign_keys=[manager_id], back_populates="subordinates"
     )
