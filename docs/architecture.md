@@ -1,116 +1,87 @@
-# Dayflow HRMS — Architecture
+# Dayflow HRMS — System Architecture
 
-## Overview
+This document describes the architectural layout, core components, security layer, and design system of **Dayflow HRMS**.
 
-Dayflow is a standalone HRMS built for an 8-hour hackathon. It digitizes
-employee onboarding, profile management, attendance, leave management,
-and payroll visibility, with strict role-based access control enforced
-server-side.
+---
 
-Stack: **FastAPI (backend/API) + PostgreSQL (database) + SQLAlchemy (ORM)**.
-No framework-provided auth/HR models — everything (including auth) is a
-custom table designed and owned by this project.
+## 🏛️ Layered System Architecture
 
-## Dependencies (minimal 3rd-party)
+Dayflow HRMS is built using a strict **Layered Architecture Pattern** to separate concerns between HTTP presentation, business logic execution, data persistence, and UI rendering:
 
-- FastAPI — API layer
-- SQLAlchemy — ORM / schema definition
-- Alembic — versioned migrations
-- passlib/bcrypt (or equivalent) — password hashing
-- python-jose (or similar) — JWT session auth
-- Jinja2 — server-rendered frontend templates (avoids a separate JS
-  framework given no prior frontend experience)
-
-No external HR/auth-as-a-service APIs. Email verification, if implemented,
-uses a minimal SMTP call — not a paid third-party provider.
-
-## Layers
-
-```
-Frontend (Jinja2 templates + CSS)
-   |
-API layer (FastAPI routers)          -- request validation, routing
-   |
-Service layer (business logic)       -- leave approval, payroll calc,
-   |                                     attendance rules, permission checks
-Data access layer (SQLAlchemy models)
-   |
-PostgreSQL
+```text
+[ Web Browser / Client ]
+           │
+           ▼
+[ FastAPI Web Router (app/web/views.py) ]  ───► [ Jinja2 Templates (app/templates/*) ]
+           │
+           ▼
+[ FastAPI REST Router (app/api/*.py) ]
+           │
+           ▼
+[ Security & Dependency Layer (app/core/deps.py) ]
+           │
+           ▼
+[ Domain Service Layer (app/services/*.py) ]
+           │
+           ▼
+[ Data Access Layer (SQLAlchemy 2.0 ORM) ]
+           │
+           ▼
+[ Database (PostgreSQL / SQLite fallback) ]
 ```
 
-Business logic lives in a dedicated service layer, not inside route
-handlers — this is what "modularity" scoring is checking for. Routes stay
-thin: parse request, call service, return response.
+---
 
-## Authentication & Authorization
+## 🔧 Core Architectural Components
 
-- `USER` table owns identity: email, password_hash (bcrypt), role,
-  is_verified, is_active.
-- JWT-based auth. Token carries user id + role.
-- **Every protected endpoint checks role/ownership server-side**, not just
-  in the frontend. A frontend hiding a button is not authorization — this
-  is the explicit hackathon requirement and the main security-scoring axis.
-- Ownership checks: an Employee can only fetch/modify rows where the
-  target row's `employee_id` resolves to their own `EMPLOYEE.id` (never
-  trust an `employee_id` passed in a request body/query — derive it from
-  the authenticated user's token, then compare against the row).
+### 1. Presentation & Routing Layer (`app/api/` & `app/web/`)
+- **JSON REST APIs (`app/api/`)**: RESTful endpoints providing JSON responses for mobile/SPA/external integration. Auth token verification is injected on every request via FastAPI's `Depends(get_current_user)`.
+- **Web UI Routes (`app/web/views.py`)**: Server-side HTML page rendering powered by Jinja2 templates. Decodes JWT tokens from `access_token` cookies to route users to role-specific dashboards.
 
-## Models
+### 2. Domain Service Layer (`app/services/`)
+- Pure Python domain logic modules isolated from HTTP request/response details.
+- Handles complex business workflows:
+  - **Attendance Calculation**: Shift duration validation (`check_out > check_in`).
+  - **Leave Management**: Overlap checking (`start_date <= existing.end_date AND end_date >= existing.start_date`) and attendance auto-sync upon approval.
+  - **Payroll Engine**: Compensation snapshotting, effective date closing, and idempotent payslip generation.
+  - **Self-Action Guards (`app/services/guards.py`)**: `SEC-13` assertions ensuring HR Admins cannot approve their own leaves or generate their own payslips.
 
-| Table | Purpose |
-|---|---|
-| `USER` | Authentication only — email, password_hash, role, verification |
-| `EMPLOYEE` | Core HR record — 1:1 with USER, department, job title, manager |
-| `DEPARTMENT` | Normalized department list |
-| `ATTENDANCE` | Daily check-in/check-out per employee |
-| `LEAVE_TYPE` | Paid / Sick / Unpaid lookup |
-| `LEAVE_REQUEST` | Employee leave applications + admin review trail |
-| `SALARY_STRUCTURE` | Time-bound salary components per employee |
-| `PAYSLIP` | Immutable monthly snapshot generated from a salary structure |
-| `AUDIT_LOG` | Lightweight trail of sensitive actions |
+### 3. Security & Authentication Layer (`app/core/`)
+- **Authentication**: OAuth2 Password Flow with JSON Web Tokens (JWT) signed via `HS256`.
+- **Password Protection**: Salted `bcrypt` password hashing via `passlib`.
+- **Fail-Fast Configuration**: `app/core/security.py` validates that `SECRET_KEY` is explicitly set in `.env` or environment during startup. If missing, it raises a `RuntimeError` unless `DAYFLOW_ENV=dev` is active.
 
-Full field-level spec lives in `database-design.md`.
+### 4. Persistence Layer (`app/models/` & `app/core/database.py`)
+- **ORM Engine**: SQLAlchemy 2.0 declarative models.
+- **Database Support**: Native PostgreSQL connection via `psycopg2-binary`, with automatic fallback to local `SQLite` (`sqlite:///dayflow.db`).
+- **Migrations**: Database schema versioning managed via **Alembic**.
 
-## Attendance status
+---
 
-Stored (`Present`/`Absent`/`Half-day`/`Leave`) but computed by the service
-layer at check-in/check-out/leave-approval time, not left for the frontend
-to infer. Avoids two sources of truth while still letting simple reads
-show status without recomputing it every time.
+## 🎨 UI Design System Architecture
 
-## Leave → Attendance sync
+The frontend styling in [`app/static/style.css`](file:///home/zagot/Oodoo_Human_Resource_Management/app/static/style.css) follows an **Organic Windows Green** aesthetic:
 
-On leave approval, the service layer upserts `ATTENDANCE` rows for each
-date in the leave's range with `status = 'Leave'`, so attendance and leave
-records never drift out of sync.
+- **Color System**:
+  - Primary Dark Green: `#14382B`
+  - Primary Brand Green: `#1E4D3B`
+  - Accent Muted Green: `#2A6B53`
+  - Light Background: `#E8F2EE`
+  - Warning Red: `#8B2020`
+- **Zero Gradients**: Pure solid colors for high contrast, rapid rendering, and enterprise readability.
+- **Typography**: Clean geometric sans-serif (`Inter`) with strict scale (`0.75rem` to `1.5rem`).
+- **Standard Controls Padding**: Inputs (`7px 10px`), Buttons (`8px 14px`), Tables (`8px 12px`).
+- **Mobile Responsive Drawer**: Off-canvas navigation menu (`#app-sidebar.mobile-open`) triggered by a mobile hamburger button (`.mobile-toggle`).
 
-## Payroll design rationale
+---
 
-`PAYSLIP` stores a **snapshot** of salary fields at generation time, not a
-live reference to `SALARY_STRUCTURE`. If salary changes in March, the
-January payslip must still show January's numbers.
+## 👥 Role-Based Access Control (RBAC) Architecture
 
-## Frontend / UX
+Dayflow HRMS enforces a strict **Two-Role Model**:
 
-- Role-specific navigation (Employee vs Admin/HR), rendered based on the
-  authenticated user's role — UX only; the API independently enforces the
-  same restriction.
-- Server-rendered Jinja2 pages: Dashboard, My Profile, Attendance, Leave,
-  Payroll (Employee) / Employees, Attendance, Leave Approvals, Payroll,
-  Reports (Admin/HR).
-
-## Scalability talking points
-
-- Pagination on list endpoints (attendance history, employee list) instead
-  of loading full tables.
-- Indexes on frequently-queried FK/lookup columns (`employee_id`, `date`,
-  `status`, `email`).
-- Stateless API (JWT, no server-side session store) — horizontally
-  scalable without sticky sessions.
-- Historical salary/payslip data never mutated in place — safe to cache.
-
-## Git workflow
-
-Feature branches per module (auth, attendance, leave, payroll), meaningful
-commit messages (`feat:`, `fix:`, `chore:` prefixes), clean main branch at
-submission.
+1. **`employee`**: Standard company staff member.
+   - Access limited strictly to own employee records, attendance history, leave requests, and payslips.
+   - Server-side token resolution derives identity directly from `current_user.id`, ignoring client-passed `employee_id` parameters.
+2. **`admin_hr`**: Combined HR & Administrator role.
+   - Full read/write access across all company employees, departments, attendance logs, leave approvals, and payroll structures.
+   - Enforced by `SEC-13` peer-approval guard: blocked from performing administrative actions (leave approval, salary structure setup, payslip generation) on their own record.

@@ -1,103 +1,93 @@
-# Dayflow HRMS — Permission Matrix
+# Dayflow HRMS — Permission & RBAC Matrix
 
-Two roles, stored on `USER.role`: **Employee** and **Admin/HR**.
+This document defines the Role-Based Access Control (RBAC) rules, endpoint access privileges, identity-trust assertions, and `SEC-13` peer-approval rules enforced by Dayflow HRMS.
 
-Enforcement happens in the FastAPI **service layer**, on every request —
-not in the frontend, and not only via a shared query helper that could be
-bypassed. Every endpoint handler must:
-1. Decode the JWT to get `user_id` and `role`.
-2. For Employee-role requests touching a specific resource, resolve the
-   resource's `employee_id` and compare it against the authenticated
-   user's own `EMPLOYEE.id` — never trust an `employee_id` passed in the
-   request body/query string.
-3. Reject with 403 if the check fails, before any data is read or written.
+---
 
-## EMPLOYEE table
+## 👥 Role Specifications
 
-| Action | Employee | Admin/HR |
-|---|---|---|
-| Read own record | Yes | Yes |
-| Read other employees' records | No | Yes |
-| Edit own limited fields (phone, address, profile picture) | Yes | Yes |
-| Edit all fields (department, job, manager) | No | Yes |
-| Create employee | No | Yes |
-| Delete employee | No | No (deactivate via USER.is_active instead) |
+Dayflow HRMS standardizes strictly on **two user roles** stored on `User.role`:
 
-## ATTENDANCE table
+1. **`employee`**: Regular staff member.
+2. **`admin_hr`**: Combined HR Staff and System Administrator role.
 
-| Action | Employee | Admin/HR |
-|---|---|---|
-| View own attendance | Yes | Yes |
-| View all employees' attendance | No | Yes |
-| Check in / check out (own) | Yes | Yes |
-| Check in / check out (other employee) | No | No |
-| Edit past attendance records | No | Yes |
+> [!IMPORTANT]
+> - There is **no third role** (no separate `admin` role).
+> - All administrative actions (leave approval, salary configuration, payslip generation) are performed by `admin_hr`.
 
-## LEAVE_REQUEST table
+---
 
-| Action | Employee | Admin/HR |
-|---|---|---|
-| Submit leave request (own) | Yes | Yes |
-| View own leave requests | Yes | Yes |
-| View all leave requests | No | Yes |
-| Approve / reject leave | No | Yes |
-| Add review comment | No | Yes |
-| Edit own pending request | Yes | Yes |
-| Edit/cancel after approval | No | Yes |
+## 🔐 Resource Access Permission Table
 
-## SALARY_STRUCTURE table
+| Resource | Action | Employee | Admin/HR | Enforcement Code |
+| :--- | :--- | :---: | :---: | :--- |
+| **User & Profile** | Read Own Profile | `ALLOW` | `ALLOW` | `app/services/employee_service.py` |
+| | Read Other Employee Profile | `DENY (403)` | `ALLOW` | `app/services/employee_service.py` |
+| | Create New Employee | `DENY (403)` | `ALLOW` | `app/api/employees.py` |
+| | Edit Own Limited Fields (phone, address) | `ALLOW` | `ALLOW` | `app/services/employee_service.py` |
+| | Edit Admin Fields (job, department, manager) | `DENY (403)` | `ALLOW` | `app/services/employee_service.py` |
+| **Attendance** | Check-In / Check-Out (Own) | `ALLOW` | `ALLOW` | `app/services/attendance_service.py` |
+| | Check-In / Check-Out (Other) | `DENY (403)` | `DENY (403)` | `app/services/attendance_service.py` |
+| | View Own Attendance History | `ALLOW` | `ALLOW` | `app/services/attendance_service.py` |
+| | View Other Employee Attendance | `DENY (403)` | `ALLOW` | `app/services/attendance_service.py` |
+| **Leave Request** | Submit Leave Request (Own) | `ALLOW` | `ALLOW` | `app/services/leave_service.py` |
+| | Edit Own Pending Request | `ALLOW` | `ALLOW` | `app/services/leave_service.py` |
+| | Edit Approved/Rejected Request | `DENY (403)` | `DENY (403)` | `app/services/leave_service.py` |
+| | Approve / Reject Leave Request (Peer) | `DENY (403)` | `ALLOW` | `app/services/leave_service.py` |
+| | Approve / Reject Own Leave Request | `DENY (403)` | `DENY (403)` | `app/services/guards.py (SEC-13)` |
+| **Salary Structure** | View Own Salary Structure | `ALLOW` | `ALLOW` | `app/services/payroll_service.py` |
+| | View Other Employee Salary Structure | `DENY (403)` | `ALLOW` | `app/services/payroll_service.py` |
+| | Create / Edit Salary Structure (Peer) | `DENY (403)` | `ALLOW` | `app/services/payroll_service.py` |
+| | Create / Edit Own Salary Structure | `DENY (403)` | `DENY (403)` | `app/services/guards.py (SEC-13)` |
+| **Payslip** | View Own Payslip Statement | `ALLOW` | `ALLOW` | `app/services/payroll_service.py` |
+| | View Other Employee Payslip Statement | `DENY (403)` | `ALLOW` | `app/services/payroll_service.py` |
+| | Generate Payslip (Peer) | `DENY (403)` | `ALLOW` | `app/services/payroll_service.py` |
+| | Generate Own Payslip | `DENY (403)` | `DENY (403)` | `app/services/guards.py (SEC-13)` |
+| **Department** | View Departments List | `ALLOW` | `ALLOW` | `app/api/departments.py` |
+| | Create / Edit Department | `DENY (403)` | `ALLOW` | `app/api/departments.py` |
 
-| Action | Employee | Admin/HR |
-|---|---|---|
-| View own salary structure | Yes (read-only) | Yes |
-| View all salary structures | No | Yes |
-| Create / edit salary structure | No | Yes |
-| Delete salary structure | No | No (close via effective_to instead) |
+---
 
-## PAYSLIP table
+## 🛡️ Identity-Trust Verification Matrix
 
-| Action | Employee | Admin/HR |
-|---|---|---|
-| View own payslips | Yes (read-only) | Yes |
-| View all payslips | No | Yes |
-| Generate payslip | No | Yes |
-| Edit/delete payslip | No | No (immutable once generated) |
+For every API endpoint taking an `employee_id` in request body, query, or path parameters, the server enforces strict identity verification:
 
-Even Admin/HR should not edit/delete a generated payslip — regenerate via
-a corrected salary structure if a mistake is found, to preserve the
-historical-accuracy guarantee.
+```text
+[ Client Request ]
+       │
+       ▼
+[ JWT Authentication (deps.get_current_user) ] ──► Extract authenticated user_id & role
+       │
+       ├──► Role == "employee":
+       │        Server ignores payload employee_id and uses authenticated Employee.id.
+       │        If client explicitly passes employee_id != own Employee.id ──► Raise 403 Forbidden.
+       │
+       └──► Role == "admin_hr":
+                Server verifies target Employee existence (Raise 404 if missing).
+                Server calls assert_not_self_action(db, current_user, target_employee_id).
+                If target_employee_id == own Employee.id ──► Raise 403 Forbidden (SEC-13).
+                Else ──► Process Request.
+```
 
-## DEPARTMENT table
+### Endpoint Identity Audit
 
-| Action | Employee | Admin/HR |
-|---|---|---|
-| View | Yes | Yes |
-| Create / edit / delete | No | Yes |
+| Endpoint | HTTP Method | Identity Resolution | Protection Mechanism |
+| :--- | :--- | :--- | :--- |
+| `/api/attendance` | `GET` | Derived from JWT for `employee` | If `employee_id` param passed $\ne$ token owner, raises 403 |
+| `/api/attendance/check-in` | `POST` | Derived from JWT | Identity locked to token owner `current_user.id` |
+| `/api/attendance/check-out` | `POST` | Derived from JWT | Identity locked to token owner `current_user.id` |
+| `/api/leave/requests` | `POST` | Derived from JWT | `employee_id` resolved from `current_user.id` |
+| `/api/leave/requests` | `GET` | Derived from JWT for `employee` | Rejects cross-employee query params with 403 |
+| `/api/leave/requests/{id}/review` | `PATCH` | `admin_hr` role + Peer check | Rejects `employee` role with 403; rejects self-action with 403 |
+| `/api/payroll/structures` | `POST` | `admin_hr` role + Peer check | Rejects `employee` role with 403; rejects self-action with 403 |
+| `/api/payroll/payslips` | `POST` | `admin_hr` role + Peer check | Rejects `employee` role with 403; rejects self-action with 403 |
 
-## AUDIT_LOG table
+---
 
-| Action | Employee | Admin/HR |
-|---|---|---|
-| View | No | Yes |
-| Write | (system-generated only, never direct user write) | (system-generated only) |
+## 🤝 Self-Action Guard (`SEC-13`) Peer Approval Model
 
-## Implementation pattern (FastAPI)
+To prevent administrative self-enrichment or conflict of interest:
 
-A shared dependency (e.g. `get_current_user`) decodes the JWT and injects
-the authenticated user into every protected route. A second layer —
-`require_role(...)` or an ownership-check helper — is called inside each
-route/service function that touches employee-scoped data, so the check
-can't be skipped by forgetting to wire up a single global middleware.
-
-## Security testing checklist (maps to test_security.py)
-
-- Employee cannot read another employee's `EMPLOYEE` record by ID.
-- Employee cannot read another employee's attendance/leave/payslip rows,
-  including by manipulating the `employee_id` query param directly.
-- Employee's JWT cannot be used to call salary_structure or payslip
-  write/delete endpoints at all, regardless of ownership.
-- Employee cannot call the leave-approval endpoint for their own or
-  anyone's request.
-- Admin/HR actions succeed against any employee's records.
-- Requests with no token, an expired token, or a token for a deactivated
-  user are rejected on every protected route.
+1. **Leave Approval**: An `admin_hr` staff member cannot approve or reject their own leave request. A peer `admin_hr` user must perform the review.
+2. **Salary Structure Setup**: An `admin_hr` staff member cannot configure their own base pay, allowances, or deductions. A peer `admin_hr` user must set up the structure.
+3. **Payslip Generation**: An `admin_hr` staff member cannot issue their own monthly payslip statement. A peer `admin_hr` user must trigger generation.
