@@ -1,0 +1,5 @@
+fastapi
+sqlalchemy>=2.0
+alembic
+psycopg2-binary
+python-dotenv

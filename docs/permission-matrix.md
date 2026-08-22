@@ -1,58 +1,103 @@
-# Dayflow HRMS — Test Cases
+# Dayflow HRMS — Permission Matrix
 
-Maps to `tests/test_attendance.py`, `tests/test_leave.py`,
-`tests/test_security.py`. Written to be implemented with Odoo's
-`TransactionCase`.
+Two roles, stored on `USER.role`: **Employee** and **Admin/HR**.
 
-## test_attendance.py
+Enforcement happens in the FastAPI **service layer**, on every request —
+not in the frontend, and not only via a shared query helper that could be
+bypassed. Every endpoint handler must:
+1. Decode the JWT to get `user_id` and `role`.
+2. For Employee-role requests touching a specific resource, resolve the
+   resource's `employee_id` and compare it against the authenticated
+   user's own `EMPLOYEE.id` — never trust an `employee_id` passed in the
+   request body/query string.
+3. Reject with 403 if the check fails, before any data is read or written.
 
-| ID | Case | Expected result |
+## EMPLOYEE table
+
+| Action | Employee | Admin/HR |
 |---|---|---|
-| ATT-01 | Employee checks in for the first time today | `hr.attendance` row created with check_in set, check_out empty |
-| ATT-02 | Employee checks in twice on the same day without checking out | Second check-in blocked / raises validation error |
-| ATT-03 | Employee checks out without a prior check-in | Blocked / raises validation error |
-| ATT-04 | Employee checks out after checking in | check_out set on the same row, record now "Present" |
-| ATT-05 | Query attendance status for a day with no record and no approved leave | Derived status = Absent |
-| ATT-06 | Employee has an approved leave covering a given date | Attendance for that date reflects "Leave" (synced by leave approval) |
-| ATT-07 | HR Officer views another employee's attendance | Allowed, full read access |
-| ATT-08 | Employee views another employee's attendance via API/direct ID | Blocked by record rule |
+| Read own record | Yes | Yes |
+| Read other employees' records | No | Yes |
+| Edit own limited fields (phone, address, profile picture) | Yes | Yes |
+| Edit all fields (department, job, manager) | No | Yes |
+| Create employee | No | Yes |
+| Delete employee | No | No (deactivate via USER.is_active instead) |
 
-## test_leave.py
+## ATTENDANCE table
 
-| ID | Case | Expected result |
+| Action | Employee | Admin/HR |
 |---|---|---|
-| LEAVE-01 | Employee submits leave with start_date after end_date | Validation error, rejected |
-| LEAVE-02 | Employee submits leave overlapping an existing pending/approved request | Blocked / validation error |
-| LEAVE-03 | Employee submits a valid leave request | Row created with state = draft/confirm (pending) |
-| LEAVE-04 | HR Officer approves a pending leave request | state → validate; reviewed_by/approver and timestamp recorded |
-| LEAVE-05 | HR Officer rejects a leave request with a comment | state → refuse; comment stored |
-| LEAVE-06 | Employee attempts to approve their own leave request | Blocked — Employee group has no write access to state field / approval action |
-| LEAVE-07 | Leave approval triggers attendance sync | hr.attendance rows created/updated for each date in range with Leave status |
-| LEAVE-08 | Employee edits a pending (not yet approved) leave request | Allowed |
-| LEAVE-09 | Employee attempts to edit an already-approved leave request | Blocked |
+| View own attendance | Yes | Yes |
+| View all employees' attendance | No | Yes |
+| Check in / check out (own) | Yes | Yes |
+| Check in / check out (other employee) | No | No |
+| Edit past attendance records | No | Yes |
 
-## test_security.py
+## LEAVE_REQUEST table
 
-| ID | Case | Expected result |
+| Action | Employee | Admin/HR |
 |---|---|---|
-| SEC-01 | Employee reads own `hr.employee` record | Allowed |
-| SEC-02 | Employee reads another employee's `hr.employee` record by ID | Blocked by record rule |
-| SEC-03 | Employee reads own `hrms.salary.structure` | Allowed, read-only |
-| SEC-04 | Employee attempts to write to `hrms.salary.structure` (own or others') | Blocked at access-rights level |
-| SEC-05 | Employee attempts to create/delete a `hrms.payslip` | Blocked |
-| SEC-06 | Employee reads another employee's payslip by direct ID/browse | Blocked by record rule |
-| SEC-07 | HR Officer reads/writes any employee's salary structure | Allowed |
-| SEC-08 | HR Officer generates a payslip for an employee | Allowed, snapshot fields match the active salary structure at generation time |
-| SEC-09 | Two overlapping active `hrms.salary.structure` rows for the same employee (effective_to = null on both) | Blocked — creating a new one auto-closes the previous |
-| SEC-10 | Duplicate payslip for same employee/month/year | Blocked by unique SQL constraint |
-| SEC-11 | User with no Dayflow group assigned accesses any Dayflow menu | Blocked / menu not visible and action denied server-side |
-| SEC-12 | Employee attempts to approve/reject any leave request | Blocked — no access to the approval action regardless of UI state |
+| Submit leave request (own) | Yes | Yes |
+| View own leave requests | Yes | Yes |
+| View all leave requests | No | Yes |
+| Approve / reject leave | No | Yes |
+| Add review comment | No | Yes |
+| Edit own pending request | Yes | Yes |
+| Edit/cancel after approval | No | Yes |
 
-## Coverage notes
+## SALARY_STRUCTURE table
 
-- Every "Blocked" case must be tested by attempting the ORM call directly
-  in the test (not just checking the UI), since the whole point is
-  proving backend enforcement, not UI hiding.
-- SEC-04/SEC-05/SEC-06 are the most judge-relevant tests: they prove
-  salary and payslip data cannot leak to the wrong employee even via
-  direct manipulation.
+| Action | Employee | Admin/HR |
+|---|---|---|
+| View own salary structure | Yes (read-only) | Yes |
+| View all salary structures | No | Yes |
+| Create / edit salary structure | No | Yes |
+| Delete salary structure | No | No (close via effective_to instead) |
+
+## PAYSLIP table
+
+| Action | Employee | Admin/HR |
+|---|---|---|
+| View own payslips | Yes (read-only) | Yes |
+| View all payslips | No | Yes |
+| Generate payslip | No | Yes |
+| Edit/delete payslip | No | No (immutable once generated) |
+
+Even Admin/HR should not edit/delete a generated payslip — regenerate via
+a corrected salary structure if a mistake is found, to preserve the
+historical-accuracy guarantee.
+
+## DEPARTMENT table
+
+| Action | Employee | Admin/HR |
+|---|---|---|
+| View | Yes | Yes |
+| Create / edit / delete | No | Yes |
+
+## AUDIT_LOG table
+
+| Action | Employee | Admin/HR |
+|---|---|---|
+| View | No | Yes |
+| Write | (system-generated only, never direct user write) | (system-generated only) |
+
+## Implementation pattern (FastAPI)
+
+A shared dependency (e.g. `get_current_user`) decodes the JWT and injects
+the authenticated user into every protected route. A second layer —
+`require_role(...)` or an ownership-check helper — is called inside each
+route/service function that touches employee-scoped data, so the check
+can't be skipped by forgetting to wire up a single global middleware.
+
+## Security testing checklist (maps to test_security.py)
+
+- Employee cannot read another employee's `EMPLOYEE` record by ID.
+- Employee cannot read another employee's attendance/leave/payslip rows,
+  including by manipulating the `employee_id` query param directly.
+- Employee's JWT cannot be used to call salary_structure or payslip
+  write/delete endpoints at all, regardless of ownership.
+- Employee cannot call the leave-approval endpoint for their own or
+  anyone's request.
+- Admin/HR actions succeed against any employee's records.
+- Requests with no token, an expired token, or a token for a deactivated
+  user are rejected on every protected route.

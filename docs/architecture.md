@@ -2,106 +2,115 @@
 
 ## Overview
 
-Dayflow is a custom Odoo module (`dayflow_hrms`) built for an 8-hour hackathon.
-It digitizes employee onboarding, profile management, attendance, leave
-management, and payroll visibility, with strict role-based access control.
+Dayflow is a standalone HRMS built for an 8-hour hackathon. It digitizes
+employee onboarding, profile management, attendance, leave management,
+and payroll visibility, with strict role-based access control enforced
+server-side.
 
-Core design principle: **extend Odoo's existing HR models, don't duplicate
-them.** Odoo already ships `res.users`, `hr.employee`, `hr.department`,
-`hr.job`, `hr.attendance`, `hr.leave`, and `hr.leave.type`. We inherit and
-extend these instead of building parallel tables, and add only two genuinely
-new models where Odoo has no equivalent: salary structures and payslips.
+Stack: **FastAPI (backend/API) + PostgreSQL (database) + SQLAlchemy (ORM)**.
+No framework-provided auth/HR models — everything (including auth) is a
+custom table designed and owned by this project.
 
-## Module dependencies
+## Dependencies (minimal 3rd-party)
 
-```
-depends = ['base', 'hr', 'hr_attendance', 'hr_holidays']
-```
+- FastAPI — API layer
+- SQLAlchemy — ORM / schema definition
+- Alembic — versioned migrations
+- passlib/bcrypt (or equivalent) — password hashing
+- python-jose (or similar) — JWT session auth
+- Jinja2 — server-rendered frontend templates (avoids a separate JS
+  framework given no prior frontend experience)
 
-No Enterprise payroll app dependency — payroll is built as a lightweight
-custom addition, since Enterprise HR/Payroll may not be available in the
-hackathon environment.
+No external HR/auth-as-a-service APIs. Email verification, if implemented,
+uses a minimal SMTP call — not a paid third-party provider.
 
 ## Layers
 
 ```
-Views (XML)           -- role-specific forms, lists, menus
+Frontend (Jinja2 templates + CSS)
    |
-Access layer           -- security groups + record rules (server-enforced)
+API layer (FastAPI routers)          -- request validation, routing
    |
-Business logic (Python) -- models/*.py, validation, computed fields, workflows
+Service layer (business logic)       -- leave approval, payroll calc,
+   |                                     attendance rules, permission checks
+Data access layer (SQLAlchemy models)
    |
-ORM                     -- Odoo's model layer, generates schema
-   |
-PostgreSQL              -- Odoo's only supported backend, auto-managed
+PostgreSQL
 ```
 
-The frontend never enforces permissions on its own — record rules and
-`ir.model.access.csv` do that at the ORM/DB layer, so even direct
-API/URL manipulation can't bypass access control.
+Business logic lives in a dedicated service layer, not inside route
+handlers — this is what "modularity" scoring is checking for. Routes stay
+thin: parse request, call service, return response.
+
+## Authentication & Authorization
+
+- `USER` table owns identity: email, password_hash (bcrypt), role,
+  is_verified, is_active.
+- JWT-based auth. Token carries user id + role.
+- **Every protected endpoint checks role/ownership server-side**, not just
+  in the frontend. A frontend hiding a button is not authorization — this
+  is the explicit hackathon requirement and the main security-scoring axis.
+- Ownership checks: an Employee can only fetch/modify rows where the
+  target row's `employee_id` resolves to their own `EMPLOYEE.id` (never
+  trust an `employee_id` passed in a request body/query — derive it from
+  the authenticated user's token, then compare against the row).
 
 ## Models
 
-### Inherited (no new tables)
-| Model | Odoo base | What we extend |
-|---|---|---|
-| `res.users` | built-in | nothing structural — auth stays native |
-| `hr.employee` | built-in | linked via existing `user_id`, `department_id`, `job_id`, `parent_id` (manager) |
-| `hr.department` | built-in | used as-is |
-| `hr.job` | built-in | used as-is |
-| `hr.attendance` | built-in | leave-sync logic, tested constraints |
-| `hr.leave` | built-in | approval workflow via existing `state` field |
-| `hr.leave.type` | built-in | used as-is (Paid / Sick / Unpaid) |
-
-### New custom models
-| Model | Purpose |
+| Table | Purpose |
 |---|---|
-| `hrms.salary.structure` | Time-bound salary components per employee (basic/allowances/deductions), history-preserving |
-| `hrms.payslip` | Immutable monthly snapshot generated from a salary structure |
+| `USER` | Authentication only — email, password_hash, role, verification |
+| `EMPLOYEE` | Core HR record — 1:1 with USER, department, job title, manager |
+| `DEPARTMENT` | Normalized department list |
+| `ATTENDANCE` | Daily check-in/check-out per employee |
+| `LEAVE_TYPE` | Paid / Sick / Unpaid lookup |
+| `LEAVE_REQUEST` | Employee leave applications + admin review trail |
+| `SALARY_STRUCTURE` | Time-bound salary components per employee |
+| `PAYSLIP` | Immutable monthly snapshot generated from a salary structure |
+| `AUDIT_LOG` | Lightweight trail of sensitive actions |
 
-## Security architecture
+Full field-level spec lives in `database-design.md`.
 
-Two custom groups:
-- `Dayflow: Employee` — access to own records only
-- `Dayflow: HR Officer` — access to all employee records, approval rights
+## Attendance status
 
-Enforced via:
-- `security/security_groups.xml` — group definitions
-- `security/ir.model.access.csv` — per-model CRUD access per group
-- `security/record_rules.xml` — row-level domain filters
-  (e.g. `[('employee_id.user_id', '=', user.id)]` for Employee group)
-
-## Attendance status — derived, not stored
-
-No `status` column on attendance. Status is computed from data:
-- check_in + check_out present → Present
-- check_in present, check_out absent → currently checked in
-- no record for a working day → Absent
-- approved `hr.leave` covering the date → Leave (written by leave-sync logic)
+Stored (`Present`/`Absent`/`Half-day`/`Leave`) but computed by the service
+layer at check-in/check-out/leave-approval time, not left for the frontend
+to infer. Avoids two sources of truth while still letting simple reads
+show status without recomputing it every time.
 
 ## Leave → Attendance sync
 
-On leave approval (`state` → `validate`), an automated action/override
-upserts `hr.attendance` rows for each date in the leave's range, so
-attendance and leave records never drift out of sync.
+On leave approval, the service layer upserts `ATTENDANCE` rows for each
+date in the leave's range with `status = 'Leave'`, so attendance and leave
+records never drift out of sync.
 
 ## Payroll design rationale
 
-Payslips store a **snapshot** of salary fields (basic/allowances/deductions)
-at generation time, not a live reference to `hrms.salary.structure`. This
-guarantees historical accuracy: if an employee's salary changes in March,
-their January payslip must still show January's numbers.
+`PAYSLIP` stores a **snapshot** of salary fields at generation time, not a
+live reference to `SALARY_STRUCTURE`. If salary changes in March, the
+January payslip must still show January's numbers.
 
 ## Frontend / UX
 
-- Role-specific menus (`views/menus.xml`) — Employee and HR/Admin see
-  different top-level items, matching what they're actually permitted to do.
-- Standard Odoo form/list/kanban views, extended not replaced.
-- Dashboard view (`dashboard_views.xml`) — attendance summary, pending
-  leave count, using Odoo's built-in aggregation, no external charting lib.
+- Role-specific navigation (Employee vs Admin/HR), rendered based on the
+  authenticated user's role — UX only; the API independently enforces the
+  same restriction.
+- Server-rendered Jinja2 pages: Dashboard, My Profile, Attendance, Leave,
+  Payroll (Employee) / Employees, Attendance, Leave Approvals, Payroll,
+  Reports (Admin/HR).
 
-## Third-party APIs
+## Scalability talking points
 
-None required for core functionality. Optional/nice-to-have: email
-notification on leave approval, using Odoo's built-in mail templates
-(not an external service).
+- Pagination on list endpoints (attendance history, employee list) instead
+  of loading full tables.
+- Indexes on frequently-queried FK/lookup columns (`employee_id`, `date`,
+  `status`, `email`).
+- Stateless API (JWT, no server-side session store) — horizontally
+  scalable without sticky sessions.
+- Historical salary/payslip data never mutated in place — safe to cache.
+
+## Git workflow
+
+Feature branches per module (auth, attendance, leave, payroll), meaningful
+commit messages (`feat:`, `fix:`, `chore:` prefixes), clean main branch at
+submission.
