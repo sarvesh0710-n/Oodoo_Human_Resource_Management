@@ -254,14 +254,14 @@ h4 { font-size: 0.95rem; line-height: 1.4; }
   width: 100%;
 }
 
-/* Standard Windows Card */
+/* Standard Windows Card - Minimal & Frameless */
 .card {
-  background: var(--surface-card);
-  border: 1px solid var(--border-main);
+  background: #FFFFFF;
+  border: none;
   border-radius: var(--radius-md);
-  padding: 16px 20px;
-  box-shadow: var(--shadow-sm);
-  margin-bottom: 16px;
+  padding: 20px 24px;
+  box-shadow: none;
+  margin-bottom: 20px;
 }
 
 .card-header {
@@ -436,7 +436,7 @@ h4 { font-size: 0.95rem; line-height: 1.4; }
   width: 100%;
   overflow-x: auto;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border-main);
+  border: none;
   -webkit-overflow-scrolling: touch;
 }
 

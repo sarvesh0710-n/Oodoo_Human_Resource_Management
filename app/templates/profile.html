@@ -101,7 +101,10 @@
         try {
             const res = await fetch('/api/employees/me', {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
                 body: JSON.stringify(payload)
             });
 

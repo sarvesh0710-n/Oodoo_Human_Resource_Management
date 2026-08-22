@@ -106,8 +106,8 @@
                     <td>Employee #${r.employee_id}</td>
                     <td>Type #${r.leave_type_id}</td>
                     <td>${formatDateDDMMYYYY(r.start_date)} → ${formatDateDDMMYYYY(r.end_date)}</td>
-                    <td style="color: var(--text-muted); font-size: 0.825rem;">${r.remarks || '—'}</td>
-                    <td><span class="status-pill ${r.status}">${r.status}</span></td>
+                    <td style="color: var(--text-muted); font-size: 0.825rem;">${escapeHtml(r.remarks || '—')}</td>
+                    <td><span class="status-pill ${escapeHtml(r.status)}">${escapeHtml(r.status)}</span></td>
                     <td>
                         ${r.status === 'pending' ? `
                             <button onclick="openReviewModal(${r.id})" class="btn btn-terracotta btn-sm">
@@ -133,7 +133,7 @@
             <div style="margin-bottom: 0.4rem;"><strong>Application ID:</strong> #LV-${req.id}</div>
             <div style="margin-bottom: 0.4rem;"><strong>Employee ID:</strong> #${req.employee_id}</div>
             <div style="margin-bottom: 0.4rem;"><strong>Dates (DD/MM/YYYY):</strong> ${formatDateDDMMYYYY(req.start_date)} to ${formatDateDDMMYYYY(req.end_date)}</div>
-            <div><strong>Remarks:</strong> ${req.remarks || 'None'}</div>
+            <div><strong>Remarks:</strong> ${escapeHtml(req.remarks || 'None')}</div>
         `;
         document.getElementById('review_comment').value = '';
         document.getElementById('review-modal').classList.add('open');
@@ -150,7 +150,10 @@
         try {
             const res = await fetch(`/api/leave/requests/${currentReviewId}/review`, {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
                 body: JSON.stringify({ status, review_comment: comment })
             });
 

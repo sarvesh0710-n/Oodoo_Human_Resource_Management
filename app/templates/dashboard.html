@@ -134,11 +134,11 @@
 
             if (todayRec) {
                 if (todayRec.check_out) {
-                    container.innerHTML = `<span class="status-pill present">Completed (${todayRec.check_in || ''} - ${todayRec.check_out || ''})</span>`;
+                    container.innerHTML = `<span class="status-pill present">Completed (${escapeHtml(todayRec.check_in || '')} - ${escapeHtml(todayRec.check_out || '')})</span>`;
                     btnIn.disabled = true;
                     btnOut.disabled = true;
                 } else {
-                    container.innerHTML = `<span class="status-pill present">Checked In (${todayRec.check_in || 'Active'})</span>`;
+                    container.innerHTML = `<span class="status-pill present">Checked In (${escapeHtml(todayRec.check_in || 'Active')})</span>`;
                     btnIn.disabled = true;
                     btnOut.disabled = false;
                 }
@@ -159,7 +159,10 @@
 
     async function handleCheckIn() {
         try {
-            const res = await fetch('/api/attendance/check-in', { method: 'POST' });
+            const res = await fetch('/api/attendance/check-in', { 
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
             if (res.ok) {
                 showToast('Checked in successfully!');
                 loadTodayStatus();
@@ -174,7 +177,10 @@
 
     async function handleCheckOut() {
         try {
-            const res = await fetch('/api/attendance/check-out', { method: 'POST' });
+            const res = await fetch('/api/attendance/check-out', { 
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
             if (res.ok) {
                 showToast('Checked out successfully!');
                 loadTodayStatus();
@@ -206,9 +212,9 @@
                 <div style="background: var(--green-subtle); border: 1px solid var(--border-main); padding: 10px 12px; border-radius: var(--radius-sm); display: flex; justify-content: space-between; align-items: center;">
                     <div>
                         <div style="font-weight: 600; color: var(--green-dark);">${formatDateDDMMYYYY(req.start_date)} to ${formatDateDDMMYYYY(req.end_date)}</div>
-                        <div style="font-size: 0.8rem; color: var(--text-muted);">${req.remarks || 'Time-off request'}</div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">${escapeHtml(req.remarks || 'Time-off request')}</div>
                     </div>
-                    <span class="status-pill ${req.status}">${req.status}</span>
+                    <span class="status-pill ${escapeHtml(req.status)}">${escapeHtml(req.status)}</span>
                 </div>
             `).join('');
         } catch (e) {

@@ -148,9 +148,9 @@
                     <td style="font-weight: 600;">Type #${r.leave_type_id}</td>
                     <td style="font-weight: 600; color: var(--green-dark);">${formatDateDDMMYYYY(r.start_date)}</td>
                     <td style="font-weight: 600; color: var(--green-dark);">${formatDateDDMMYYYY(r.end_date)}</td>
-                    <td>${r.remarks || '—'}</td>
-                    <td><span class="status-pill ${r.status}">${r.status}</span></td>
-                    <td style="color: var(--text-muted); font-size: 0.825rem;">${r.review_comment || '—'}</td>
+                    <td>${escapeHtml(r.remarks || '—')}</td>
+                    <td><span class="status-pill ${escapeHtml(r.status)}">${escapeHtml(r.status)}</span></td>
+                    <td style="color: var(--text-muted); font-size: 0.825rem;">${escapeHtml(r.review_comment || '—')}</td>
                 </tr>
             `).join('');
         } catch (e) {
@@ -170,7 +170,10 @@
         try {
             const res = await fetch('/api/leave/requests', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
                 body: JSON.stringify(payload)
             });
 

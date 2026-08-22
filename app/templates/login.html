@@ -70,7 +70,10 @@
             try {
                 const res = await fetch('/api/auth/login', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
                     body: JSON.stringify({ email, password })
                 });
                 const data = await res.json();
@@ -80,8 +83,6 @@
                     return;
                 }
 
-                document.cookie = `access_token=Bearer ${data.access_token}; path=/; max-age=86400`;
-                localStorage.setItem('token', data.access_token);
                 const landing = data.role === 'admin_hr' ? '/admin-dashboard' : '/dashboard';
                 window.location.href = landing;
             } catch (err) {

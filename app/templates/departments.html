@@ -114,10 +114,10 @@
             grid.innerHTML = data.map(d => `
                 <div class="card" style="margin-bottom: 0;">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
-                        <h4 style="font-family: var(--font-heading); font-size: 1.25rem;">${d.name}</h4>
+                        <h4 style="font-family: var(--font-heading); font-size: 1.25rem;">${escapeHtml(d.name)}</h4>
                         <span class="role-badge employee">${d.employee_count || 0} Members</span>
                     </div>
-                    <p style="font-size: 0.875rem; color: var(--slate-muted); margin-bottom: 1.25rem;">${d.description || 'Core organizational unit'}</p>
+                    <p style="font-size: 0.875rem; color: var(--slate-muted); margin-bottom: 1.25rem;">${escapeHtml(d.description || 'Core organizational unit')}</p>
                     <div style="font-size: 0.8rem; color: var(--slate-muted);">Manager: ${d.manager_id ? 'Employee #' + d.manager_id : 'Unassigned'}</div>
                 </div>
             `).join('');
@@ -126,8 +126,8 @@
             tbody.innerHTML = data.map(d => `
                 <tr>
                     <td style="font-weight: 600;">#DEPT-${d.id}</td>
-                    <td style="font-weight: 600;">${d.name}</td>
-                    <td>${d.description || '—'}</td>
+                    <td style="font-weight: 600;">${escapeHtml(d.name)}</td>
+                    <td>${escapeHtml(d.description || '—')}</td>
                     <td>${d.manager_id ? 'Emp #' + d.manager_id : 'Unassigned'}</td>
                     <td><span class="role-badge employee">${d.employee_count || 0} Members</span></td>
                     <td><button class="btn btn-secondary btn-sm">Edit</button></td>
@@ -151,7 +151,10 @@
         try {
             const res = await fetch('/api/departments', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
                 body: JSON.stringify(payload)
             });
 

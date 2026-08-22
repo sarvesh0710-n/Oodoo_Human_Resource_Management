@@ -40,10 +40,10 @@ async function loadEmployees() {
     tbody.innerHTML = data.map(e => `
         <tr>
             <td>${e.id}</td>
-            <td>${e.first_name} ${e.last_name}</td>
-            <td>${e.job_title || '--'}</td>
+            <td>${escapeHtml(e.first_name)} ${escapeHtml(e.last_name)}</td>
+            <td>${escapeHtml(e.job_title || '--')}</td>
             <td>${e.department_id || '--'}</td>
-            <td>${e.phone || '--'}</td>
+            <td>${escapeHtml(e.phone || '--')}</td>
             <td>${formatDateDDMMYYYY(e.joining_date)}</td>
         </tr>
     `).join('');
