@@ -20,15 +20,13 @@ The system is architected with a strict separation of concerns, offering both **
 
 - [Key Features](#key-features)
 - [System Architecture](#system-architecture)
+- [Database Schema & ER Diagram](#database-schema--er-diagram)
 - [Technology Stack](#technology-stack)
-- [Database Schema & ERD](#database-schema--erd)
+- [UI Design System](#ui-design-system)
 - [Role-Based Access Control & Security](#role-based-access-control--security)
-- [Project Directory Structure](#project-directory-structure)
-- [Getting Started & Installation](#getting-started--installation)
-- [Running the Application](#running-the-application)
 - [Pre-Seeded Demo Login Credentials](#pre-seeded-demo-login-credentials)
-- [CLI Database Management Scripts](#cli-database-management-scripts)
-- [API Documentation](#api-documentation)
+- [CLI Database Management Commands](#cli-database-management-commands)
+- [Running the Application](#running-the-application)
 - [Testing & Quality Assurance](#testing--quality-assurance)
 - [Documentation Hub](#documentation-hub)
 - [License](#license)
@@ -79,13 +77,154 @@ The system is architected with a strict separation of concerns, offering both **
 
 ---
 
-## UI Design System
+## System Architecture
 
-The web frontend uses a modern **Organic Curved Green** aesthetic ([`app/static/style.css`](app/static/style.css)):
-- **Curved Radius System**: Deep smooth curved borders (`border-radius: 24px` for cards, `18px` for inputs/selects, `28px` for modals).
-- **Button-Free Aesthetic**: Clean frameless pill controls (`border-radius: 9999px`) with soft hover scaling (`transform: translateY(-1px)`).
-- **Palette**: Forest Green (`#14382B`), Hunter Green (`#1E4D3B`), Accent Green (`#2A6B53`), Soft Base (`#E8F2EE`), Alert Crimson (`#8B2020`).
-- **Zero Emoji Bloat**: Clean, professional UI text without emoji bloat.
+Dayflow HRMS is built using a strict **Layered Architecture Pattern** to decouple HTTP presentation, business logic execution, data persistence, and UI rendering:
+
+```text
+               +-----------------------------------------+
+               |         Client Browser / REST API       |
+               +--------------------+--------------------+
+                                    |
+               +--------------------v--------------------+
+               |    FastAPI Presentation Layer           |
+               |   • Jinja2 HTML Views (app/web/views.py)|
+               |   • JSON REST APIs    (app/api/*.py)    |
+               +--------------------+--------------------+
+                                    |
+               +--------------------v--------------------+
+               |    Security & Dependency Injection      |
+               |   • JWT Cookie Auth (app/core/deps.py)  |
+               |   • Role-Based Guard (require_role)     |
+               +--------------------+--------------------+
+                                    |
+               +--------------------v--------------------+
+               |    Domain Service Layer                 |
+               |   • Attendance, Leave, Payroll Services |
+               |   • SEC-13 Self-Action Guards           |
+               |   • Audit Logging Dispatcher            |
+               +--------------------+--------------------+
+                                    |
+               +--------------------v--------------------+
+               |    Data Persistence (SQLAlchemy 2.0)    |
+               |   • Declarative ORM Models (app/models/)|
+               |   • PostgreSQL / SQLite Dual Support    |
+               |   • Alembic Versioned Migrations        |
+               +-----------------------------------------+
+```
+
+---
+
+## Database Schema & ER Diagram
+
+The entity relationship diagram visualizes all 9 domain models and foreign key constraints:
+
+```mermaid
+erDiagram
+  DEPARTMENT ||--o{ EMPLOYEE : contains
+  USER ||--|| EMPLOYEE : "is"
+  EMPLOYEE ||--o{ ATTENDANCE : logs
+  EMPLOYEE ||--o{ LEAVE_REQUEST : submits
+  LEAVE_TYPE ||--o{ LEAVE_REQUEST : categorizes
+  USER ||--o{ LEAVE_REQUEST : reviews
+  EMPLOYEE ||--o{ SALARY_STRUCTURE : has
+  EMPLOYEE ||--o{ PAYSLIP : receives
+  SALARY_STRUCTURE ||--o{ PAYSLIP : generates
+  USER ||--o{ AUDIT_LOG : performs
+
+  USER {
+    int id PK
+    string employee_code UK
+    string email UK
+    string password_hash
+    string role
+    bool is_verified
+    bool is_active
+  }
+
+  EMPLOYEE {
+    int id PK
+    int user_id FK
+    int department_id FK
+    int manager_id FK
+    string first_name
+    string last_name
+    string phone
+    string address
+    string job_title
+    date joining_date
+  }
+
+  DEPARTMENT {
+    int id PK
+    string name
+    string description
+    int manager_id FK
+  }
+
+  ATTENDANCE {
+    int id PK
+    int employee_id FK
+    date date
+    time check_in
+    time check_out
+    string status
+  }
+
+  LEAVE_TYPE {
+    int id PK
+    string name
+    string description
+    bool is_paid
+  }
+
+  LEAVE_REQUEST {
+    int id PK
+    int employee_id FK
+    int leave_type_id FK
+    int reviewed_by FK
+    date start_date
+    date end_date
+    string remarks
+    string status
+    string review_comment
+    datetime reviewed_at
+    datetime created_at
+  }
+
+  SALARY_STRUCTURE {
+    int id PK
+    int employee_id FK
+    float basic_salary
+    float allowances
+    float deductions
+    date effective_from
+    date effective_to
+  }
+
+  PAYSLIP {
+    int id PK
+    int employee_id FK
+    int salary_structure_id FK
+    int month
+    int year
+    float basic_salary
+    float allowances
+    float deductions
+    float gross_salary
+    float net_salary
+    datetime generated_at
+  }
+
+  AUDIT_LOG {
+    int id PK
+    int user_id FK
+    string action
+    string entity
+    int entity_id
+    datetime timestamp
+  }
+```
 
 ---
 
@@ -102,6 +241,16 @@ The web frontend uses a modern **Organic Curved Green** aesthetic ([`app/static/
 | **Authentication** | **python-jose** + **passlib** (bcrypt)| Signed JWT tokens & salted password hashing |
 | **Data Validation** | **Pydantic v2** | Request schema parsing and type validation |
 | **Test Framework** | **Pytest** + **httpx** | 50 comprehensive unit, integration, and QA test cases |
+
+---
+
+## UI Design System
+
+The web frontend uses a modern **Organic Curved Green** aesthetic ([`app/static/style.css`](app/static/style.css)):
+- **Curved Radius System**: Deep smooth curved borders (`border-radius: 24px` for cards, `18px` for inputs/selects, `28px` for modals).
+- **Button-Free Aesthetic**: Clean frameless pill controls (`border-radius: 9999px`) with soft hover scaling (`transform: translateY(-1px)`).
+- **Palette**: Forest Green (`#14382B`), Hunter Green (`#1E4D3B`), Accent Green (`#2A6B53`), Soft Base (`#E8F2EE`), Alert Crimson (`#8B2020`).
+- **Zero Emoji Bloat**: Clean, professional UI text without emoji bloat.
 
 ---
 
