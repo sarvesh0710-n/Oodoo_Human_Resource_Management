@@ -1,0 +1,135 @@
+<h2 class="sr-only">Entity relationship diagram for the Dayflow HRMS database, showing USER, EMPLOYEE, DEPARTMENT, ATTENDANCE, LEAVE_TYPE, LEAVE_REQUEST, SALARY_STRUCTURE, PAYSLIP, and AUDIT_LOG tables and their relationships.</h2>
+<style>
+#erd svg.erDiagram .divider path { stroke-opacity: 0.5; }
+#erd svg.erDiagram .row-rect-odd path,
+#erd svg.erDiagram .row-rect-odd rect,
+#erd svg.erDiagram .row-rect-even path,
+#erd svg.erDiagram .row-rect-even rect { stroke: none !important; }
+</style>
+<div id="erd"></div>
+<script type="module">
+import mermaid from 'https://esm.sh/mermaid@11/dist/mermaid.esm.min.mjs';
+const themeMode = document.documentElement.dataset.mode;
+const dark = themeMode ? themeMode === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+await document.fonts.ready;
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'base',
+  fontFamily: '"anthropic-sans", sans-serif',
+  themeVariables: {
+    darkMode: dark,
+    fontSize: '13px',
+    fontFamily: '"anthropic-sans", sans-serif',
+    lineColor: dark ? '#9c9a92' : '#73726c',
+    textColor: dark ? '#c2c0b6' : '#3d3d3a',
+  },
+});
+const def = `erDiagram
+  DEPARTMENT ||--o{ EMPLOYEE : contains
+  USER ||--|| EMPLOYEE : "is"
+  EMPLOYEE ||--o{ ATTENDANCE : logs
+  EMPLOYEE ||--o{ LEAVE_REQUEST : submits
+  LEAVE_TYPE ||--o{ LEAVE_REQUEST : categorizes
+  USER ||--o{ LEAVE_REQUEST : reviews
+  EMPLOYEE ||--o{ SALARY_STRUCTURE : has
+  EMPLOYEE ||--o{ PAYSLIP : receives
+  SALARY_STRUCTURE ||--o{ PAYSLIP : generates
+  USER ||--o{ AUDIT_LOG : performs
+  USER {
+    int id PK
+    string employee_code UK
+    string email UK
+    string password_hash
+    string role
+    bool is_verified
+    bool is_active
+  }
+  EMPLOYEE {
+    int id PK
+    int user_id FK
+    int department_id FK
+    int manager_id FK
+    string first_name
+    string last_name
+    string job_title
+    date joining_date
+  }
+  DEPARTMENT {
+    int id PK
+    string name
+    int manager_id FK
+  }
+  ATTENDANCE {
+    int id PK
+    int employee_id FK
+    date date
+    time check_in
+    time check_out
+    string status
+  }
+  LEAVE_TYPE {
+    int id PK
+    string name
+    bool is_paid
+  }
+  LEAVE_REQUEST {
+    int id PK
+    int employee_id FK
+    int leave_type_id FK
+    int reviewed_by FK
+    date start_date
+    date end_date
+    string status
+    string review_comment
+  }
+  SALARY_STRUCTURE {
+    int id PK
+    int employee_id FK
+    float basic_salary
+    float allowances
+    float deductions
+    date effective_from
+    date effective_to
+  }
+  PAYSLIP {
+    int id PK
+    int employee_id FK
+    int salary_structure_id FK
+    int month
+    int year
+    float gross_salary
+    float net_salary
+  }
+  AUDIT_LOG {
+    int id PK
+    int user_id FK
+    string action
+    string entity
+    int entity_id
+    datetime timestamp
+  }`;
+const { svg } = await mermaid.render('erd-svg', def);
+document.getElementById('erd').innerHTML = svg;
+document.querySelectorAll('#erd svg.erDiagram .node').forEach(node => {
+  const firstPath = node.querySelector('path[d]');
+  if (!firstPath) return;
+  const d = firstPath.getAttribute('d');
+  const nums = d.match(/-?[\d.]+/g)?.map(Number);
+  if (!nums || nums.length < 8) return;
+  const xs = [nums[0], nums[2], nums[4], nums[6]];
+  const ys = [nums[1], nums[3], nums[5], nums[7]];
+  const x = Math.min(...xs), y = Math.min(...ys);
+  const w = Math.max(...xs) - x, h = Math.max(...ys) - y;
+  const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  rect.setAttribute('x', x); rect.setAttribute('y', y);
+  rect.setAttribute('width', w); rect.setAttribute('height', h);
+  rect.setAttribute('rx', '8');
+  for (const a of ['fill', 'stroke', 'stroke-width', 'class', 'style']) {
+    if (firstPath.hasAttribute(a)) rect.setAttribute(a, firstPath.getAttribute(a));
+  }
+  firstPath.replaceWith(rect);
+});
+document.querySelectorAll('#erd svg.erDiagram .row-rect-odd path, #erd svg.erDiagram .row-rect-even path').forEach(p => {
+  p.setAttribute('stroke', 'none');
+});
+</script>
