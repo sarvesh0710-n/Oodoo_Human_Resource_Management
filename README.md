@@ -19,7 +19,7 @@ The system is architected with a strict separation of concerns, offering both **
 ## Table of Contents
 
 - [Key Features](#key-features)
-- [Authentication & Role Routing Workflow](#authentication--role-routing-workflow)
+- [Web Application User Workflow](#web-application-user-workflow)
 - [System Architecture](#system-architecture)
 - [Database Schema & ER Diagram](#database-schema--er-diagram)
 - [Technology Stack](#technology-stack)
@@ -50,7 +50,7 @@ The system is architected with a strict separation of concerns, offering both **
 - **One-Click Clock-In / Clock-Out**: Streamlined daily shift tracking with timestamp validation (`check_out > check_in`).
 - **Leave Guard**: Rejects check-in/check-out attempts if an employee is on approved leave today (`"Cannot check in: You are on approved leave today"`).
 - **Zero-Duration Rejection**: Prevents duplicate or instantaneous check-out anomalies.
-- **Monthly Attendance Calendar Grid**: Visual monthly view and downloadable/printable log history.
+- **Monthly Attendance Calendar Grid**: Visual monthly view with month navigation controls and employee filter dropdown.
 
 ### 4. Time-Off & Leave Management
 - **Leave Types & Allowances**: Pre-configured categories (Paid Time Off, Medical/Sick Leave, Unpaid Leave).
@@ -77,52 +77,49 @@ The system is architected with a strict separation of concerns, offering both **
 
 ---
 
-## Authentication & Role Routing Workflow
+## Web Application User Workflow
 
-Dayflow HRMS provides a single universal login entrypoint that automatically detects the authenticated user's role and directs them to their respective operational dashboard:
-
-- **1. Universal Login Entrypoint (`/login`)**: User submits credentials (Work Email or Employee Code + Password).
-- **2. FastAPI Backend Verification & Role Extraction**: Backend validates bcrypt hash, issues signed `HS256` JWT access token in an `HttpOnly` secure cookie, and reads user role (`admin_hr` vs `employee`).
-- **3. Role-Based Redirection**:
-  - **Role: HR Administrator (`admin_hr`)**: Auto-redirected to `/admin-dashboard` (HR Overview, Employee Onboarding, Leave Approvals, Department Hierarchy Edits, Bulk Payslip Generation, System Audit Trail).
-  - **Role: Standard Employee (`employee`)**: Auto-redirected to `/dashboard` (Personal Shift Summary, 1-Click Clock-In / Clock-Out, Attendance Calendar Grid, Leave Applications, Statement Viewer).
+```mermaid
+graph TD
+    Login[Login Portal - /login] -->|Submit Email / Code + Password| AuthEngine[FastAPI Authentication Engine]
+    AuthEngine -->|Verify Bcrypt & Issue JWT| RoleCheck{Role Detection}
+    
+    RoleCheck -->|admin_hr| AdminDash[HR Admin Dashboard - /admin-dashboard]
+    RoleCheck -->|employee| EmpDash[Employee Dashboard - /dashboard]
+    
+    subgraph HR Admin Operations Portal
+        AdminDash --> EmpDir[Employee Directory & Staff Onboarding]
+        AdminDash --> DeptMgmt[Department Management & Real-Time Edits]
+        AdminDash --> LeaveAppr[Leave Approvals Queue & HR Comments]
+        AdminDash --> PayrollMgmt[Salary Structuring & Bulk Payslips]
+        AdminDash --> HRCal[Company Attendance Calendar & Staff Filter]
+    end
+    
+    subgraph Standard Employee Portal
+        EmpDash --> ClockWidget[1-Click Shift Clock-In / Clock-Out]
+        EmpDash --> MyLeaves[Submit & Track Time-Off Requests]
+        EmpDash --> MyCal[Personal Monthly Attendance Calendar]
+        EmpDash --> MyPayslips[View & Print Monthly Payslip Statements]
+        EmpDash --> MyProfile[Personal Profile & Contact Editor]
+    end
+```
 
 ---
 
 ## System Architecture
 
-Dayflow HRMS is built using a strict **Layered Architecture Pattern** to decouple HTTP presentation, business logic execution, data persistence, and UI rendering:
-
-```text
-               +-----------------------------------------+
-               |         Client Browser / REST API       |
-               +--------------------+--------------------+
-                                    |
-               +--------------------v--------------------+
-               |    FastAPI Presentation Layer           |
-               |   • Jinja2 HTML Views (app/web/views.py)|
-               |   • JSON REST APIs    (app/api/*.py)    |
-               +--------------------+--------------------+
-                                    |
-               +--------------------v--------------------+
-               |    Security & Dependency Injection      |
-               |   • JWT Cookie Auth (app/core/deps.py)  |
-               |   • Role-Based Guard (require_role)     |
-               +--------------------+--------------------+
-                                    |
-               +--------------------v--------------------+
-               |    Domain Service Layer                 |
-               |   • Attendance, Leave, Payroll Services |
-               |   • SEC-13 Self-Action Guards           |
-               |   • Audit Logging Dispatcher            |
-               +--------------------+--------------------+
-                                    |
-               +--------------------v--------------------+
-               |    Data Persistence (SQLAlchemy 2.0)    |
-               |   • Declarative ORM Models (app/models/)|
-               |   • PostgreSQL / SQLite Dual Support    |
-               |   • Alembic Versioned Migrations        |
-               +-----------------------------------------+
+```mermaid
+graph TD
+    Client[Web Browser / REST Consumer] --> WebRouter[FastAPI Web Router - app/web/views.py]
+    Client --> APIRouter[FastAPI REST API Router - app/api/*.py]
+    WebRouter --> Jinja[Jinja2 SSR Templates - app/templates/*]
+    APIRouter --> Security[Security & Dependency Injection - app/core/deps.py]
+    WebRouter --> Security
+    Security --> DomainServices[Domain Service Layer - app/services/*.py]
+    DomainServices --> Guards[SEC-13 Self-Action Peer Guards - app/services/guards.py]
+    DomainServices --> Audit[Audit Service Dispatcher - app/services/audit_service.py]
+    DomainServices --> ORM[SQLAlchemy 2.0 ORM Models - app/models/*.py]
+    ORM --> DB[(PostgreSQL 15+ / SQLite Database)]
 ```
 
 ---
