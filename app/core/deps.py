@@ -45,11 +45,18 @@ def get_current_user(
         raise credentials_exception
 
     payload = decode_token(token)
-    user_id: Optional[int] = payload.get("sub")
-    if user_id is None:
+    user_id_raw = payload.get("sub")
+    if user_id_raw is None:
         raise credentials_exception
 
-    user = db.query(User).filter(User.id == int(user_id)).first()
+    try:
+        user_id = int(user_id_raw)
+    except (ValueError, TypeError):
+        # DESIGN DECISION: Malformed user_id in JWT payload is rejected cleanly with HTTP 401
+        raise credentials_exception
+
+    user = db.query(User).filter(User.id == user_id).first()
+    # DESIGN DECISION: User deleted from DB or deactivated mid-session is immediately rejected with HTTP 401
     if user is None or not user.is_active:
         raise credentials_exception
 

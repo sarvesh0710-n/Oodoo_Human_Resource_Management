@@ -1,3 +1,5 @@
+import calendar
+from datetime import date
 from decimal import Decimal
 from typing import List, Optional
 from fastapi import HTTPException, status
@@ -25,6 +27,22 @@ def create_salary_structure(
 
     # SEC-13: Self-action guard check
     assert_not_self_action(db, current_user, data.employee_id)
+
+    # DESIGN DECISION: Creating a salary structure for a non-existent employee_id returns HTTP 404 instead of a database FK failure
+    target_emp = db.query(Employee).filter(Employee.id == data.employee_id).first()
+    if not target_emp:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Employee with ID {data.employee_id} not found",
+        )
+
+    # DESIGN DECISION: Negative net salary (deductions > basic + allowances) is invalid and rejected with HTTP 400
+    gross = data.basic_salary + data.allowances
+    if data.deductions > gross:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Deductions (${data.deductions:.2f}) cannot exceed gross salary (${gross:.2f})",
+        )
 
     # SEC-09: Close previous active structure (effective_to = null)
     active_structure = db.query(SalaryStructure).filter(
@@ -68,6 +86,12 @@ def get_salary_structures(
         return db.query(SalaryStructure).filter(SalaryStructure.employee_id == emp.id).all()
     else:
         if employee_id_param:
+            target_emp = db.query(Employee).filter(Employee.id == employee_id_param).first()
+            if not target_emp:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Employee with ID {employee_id_param} not found",
+                )
             return db.query(SalaryStructure).filter(SalaryStructure.employee_id == employee_id_param).all()
         return db.query(SalaryStructure).all()
 
@@ -100,16 +124,21 @@ def generate_payslip(
             detail=f"Payslip for employee {data.employee_id} for {data.month}/{data.year} already exists",
         )
 
-    # Get active salary structure
+    # DESIGN DECISION: Salary structure must have effective_from <= target period end date
+    last_day = calendar.monthrange(data.year, data.month)[1]
+    period_start = date(data.year, data.month, 1)
+    period_end = date(data.year, data.month, last_day)
+
     salary_struct = db.query(SalaryStructure).filter(
         SalaryStructure.employee_id == data.employee_id,
-        SalaryStructure.effective_to.is_(None),
-    ).first()
+        SalaryStructure.effective_from <= period_end,
+        (SalaryStructure.effective_to.is_(None) | (SalaryStructure.effective_to >= period_start)),
+    ).order_by(SalaryStructure.effective_from.desc()).first()
 
     if not salary_struct:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"No active salary structure found for employee {data.employee_id}",
+            detail=f"No active salary structure found for employee {data.employee_id} for period {data.month}/{data.year}",
         )
 
     # Calculate gross & net salary snapshot
@@ -152,6 +181,12 @@ def get_payslips(
         return db.query(Payslip).filter(Payslip.employee_id == emp.id).all()
     else:
         if employee_id_param:
+            target_emp = db.query(Employee).filter(Employee.id == employee_id_param).first()
+            if not target_emp:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Employee with ID {employee_id_param} not found",
+                )
             return db.query(Payslip).filter(Payslip.employee_id == employee_id_param).all()
         return db.query(Payslip).all()
 

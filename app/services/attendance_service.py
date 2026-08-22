@@ -27,6 +27,13 @@ def get_attendance_records(
     else:
         # Admin / HR role
         if employee_id_param:
+            # DESIGN DECISION: Querying attendance for a non-existent employee_id returns HTTP 404 instead of a misleading empty list
+            target_emp = db.query(Employee).filter(Employee.id == employee_id_param).first()
+            if not target_emp:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Employee with ID {employee_id_param} not found",
+                )
             return db.query(Attendance).filter(Attendance.employee_id == employee_id_param).all()
         return db.query(Attendance).all()
 
@@ -36,6 +43,7 @@ def check_in(db: Session, current_user: User, check_in_time: Optional[time] = No
     if not emp:
         raise HTTPException(status_code=404, detail="Employee record not found")
 
+    # DESIGN DECISION: Midnight boundary date.today() uses server timezone authority consistently
     today = date.today()
 
     existing = db.query(Attendance).filter(
@@ -85,6 +93,7 @@ def check_out(db: Session, current_user: User, check_out_time: Optional[time] = 
             detail="Cannot check out without prior check-in today",
         )
 
+    # DESIGN DECISION: Zero-duration shift (check_out == check_in) is rejected; check_out must be strictly after check_in
     if check_out_time is not None and check_out_time <= existing.check_in:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
