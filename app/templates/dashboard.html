@@ -6,7 +6,7 @@
 <div style="margin-bottom: 2rem;">
     <div style="display: flex; justify-content: space-between; align-items: flex-end;">
         <div>
-            <h1 style="margin-bottom: 0.25rem;">Hello, {{ employee.first_name if employee else 'Team Member' }} 👋</h1>
+            <h1 style="margin-bottom: 0.25rem;">Hello, {{ employee.first_name if employee else 'Team Member' }}</h1>
             <p style="color: var(--slate-muted);">Here is your work summary for today, {{ current_date_str or 'Today' }}.</p>
         </div>
         {% if user.role == 'admin_hr' %}
