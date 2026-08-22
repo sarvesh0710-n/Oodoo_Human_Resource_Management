@@ -11,24 +11,12 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 _secret = os.getenv("SECRET_KEY")
-_env = os.getenv("DAYFLOW_ENV", "").lower()
-_is_dev_mode = (
-    _env in ("dev", "development")
-    or os.getenv("DEBUG", "").lower() in ("true", "1", "yes")
-    or os.getenv("DEV", "").lower() in ("true", "1", "yes")
-)
-
 if not _secret:
-    if _is_dev_mode:
-        logger.warning("WARNING: SECRET_KEY is not set. Using dev-only default secret key because dev mode is enabled.")
-        SECRET_KEY = "dev_only_default_secret_key_do_not_use_in_production"
-    else:
-        raise RuntimeError(
-            "FATAL SECURITY CONFIGURATION ERROR: SECRET_KEY environment variable is not set. "
-            "Please define SECRET_KEY in your .env file or environment, or set DAYFLOW_ENV=dev for local development."
-        )
-else:
-    SECRET_KEY = _secret
+    raise RuntimeError(
+        "FATAL SECURITY CONFIGURATION ERROR: SECRET_KEY environment variable is not set. "
+        "Please define SECRET_KEY in your .env file or environment."
+    )
+SECRET_KEY = _secret
 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
