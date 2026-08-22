@@ -8,6 +8,7 @@ from app.models.payroll import Payslip, SalaryStructure
 from app.models.user import User
 from app.schemas import PayslipGenerate, SalaryStructureCreate
 from app.services.audit_service import log_action
+from app.services.guards import assert_not_self_action
 
 
 def create_salary_structure(
@@ -21,6 +22,9 @@ def create_salary_structure(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only Admin/HR can create or update salary structures",
         )
+
+    # SEC-13: Self-action guard check
+    assert_not_self_action(db, current_user, data.employee_id)
 
     # SEC-09: Close previous active structure (effective_to = null)
     active_structure = db.query(SalaryStructure).filter(
@@ -79,6 +83,9 @@ def generate_payslip(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only Admin/HR can generate payslips",
         )
+
+    # SEC-13: Self-action guard check
+    assert_not_self_action(db, current_user, data.employee_id)
 
     # SEC-10: Check unique (employee_id, month, year)
     existing = db.query(Payslip).filter(

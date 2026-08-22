@@ -10,14 +10,22 @@ from app.models.leave import LeaveRequest, LeaveType
 from app.models.attendance import Attendance
 from app.models.user import User
 
+from app.core.security import decode_token
+
 router = APIRouter(tags=["web_ui"])
 templates = Jinja2Templates(directory="app/templates")
+
+
+def _dashboard_url_for_role(role: str) -> str:
+    return "/admin-dashboard" if role == "admin_hr" else "/dashboard"
 
 
 @router.get("/", response_class=HTMLResponse)
 def index(request: Request, token: str = Depends(get_token_from_request)):
     if token:
-        return RedirectResponse(url="/dashboard", status_code=302)
+        payload = decode_token(token)
+        role = payload.get("role", "employee")
+        return RedirectResponse(url=_dashboard_url_for_role(role), status_code=302)
     return RedirectResponse(url="/login", status_code=302)
 
 
@@ -32,6 +40,8 @@ def dashboard_page(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    if current_user.role != "employee":
+        return RedirectResponse(url=_dashboard_url_for_role(current_user.role), status_code=302)
     employee = db.query(Employee).filter(Employee.user_id == current_user.id).first()
     departments = db.query(Department).all()
     pending_leaves = db.query(LeaveRequest).filter(LeaveRequest.status == "pending").count() if current_user.role == "admin_hr" else 0

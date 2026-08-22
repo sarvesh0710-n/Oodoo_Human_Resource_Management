@@ -49,6 +49,11 @@ def check_in(db: Session, current_user: User, check_in_time: Optional[time] = No
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Already checked in today",
             )
+        if existing.check_out is not None and now_time >= existing.check_out:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Check-in time must be strictly before check-out time",
+            )
         existing.check_in = now_time
         existing.status = "present"
         db.commit()
@@ -83,6 +88,12 @@ def check_out(db: Session, current_user: User, check_out_time: Optional[time] = 
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cannot check out without prior check-in today",
+        )
+
+    if now_time <= existing.check_in:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Check-out time must be strictly after check-in time",
         )
 
     existing.check_out = now_time

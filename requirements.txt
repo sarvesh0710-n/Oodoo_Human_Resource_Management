@@ -9,5 +9,4 @@ python-multipart
 uvicorn
 jinja2
 email-validator
-
-
+httpx

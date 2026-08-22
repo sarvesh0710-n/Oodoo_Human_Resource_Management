@@ -9,6 +9,7 @@ from app.models.leave import LeaveRequest, LeaveType
 from app.models.user import User
 from app.schemas import LeaveRequestCreate, LeaveRequestReview
 from app.services.audit_service import log_action
+from app.services.guards import assert_not_self_action
 
 
 def create_leave_request(db: Session, current_user: User, data: LeaveRequestCreate) -> LeaveRequest:
@@ -89,6 +90,9 @@ def review_leave_request(
     if not leave_req:
         raise HTTPException(status_code=404, detail="Leave request not found")
 
+    # SEC-13: Self-action guard check
+    assert_not_self_action(db, current_user, leave_req.employee_id)
+
     leave_req.status = data.status
     leave_req.review_comment = data.review_comment
     leave_req.reviewed_by = current_user.id
@@ -143,6 +147,28 @@ def update_pending_leave_request(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Cannot edit a leave request that has already been reviewed",
+        )
+
+    # LEAVE-01: start_date > end_date check
+    if data.start_date > data.end_date:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Start date cannot be after end date",
+        )
+
+    # LEAVE-02: Overlap check excluding current request ID
+    overlapping = db.query(LeaveRequest).filter(
+        LeaveRequest.employee_id == leave_req.employee_id,
+        LeaveRequest.id != leave_id,
+        LeaveRequest.status.in_(["pending", "approved"]),
+        LeaveRequest.start_date <= data.end_date,
+        LeaveRequest.end_date >= data.start_date,
+    ).first()
+
+    if overlapping:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Leave request overlaps with an existing pending or approved request",
         )
 
     leave_req.start_date = data.start_date

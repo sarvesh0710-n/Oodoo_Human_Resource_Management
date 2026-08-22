@@ -7,7 +7,23 @@ from passlib.context import CryptContext
 
 load_dotenv()
 
-SECRET_KEY = os.getenv("SECRET_KEY", "dayflow_hrms_super_secret_jwt_key_2026")
+_secret = os.getenv("SECRET_KEY")
+_is_dev_mode = (
+    os.getenv("DEBUG", "").lower() in ("true", "1", "yes")
+    or os.getenv("DEV", "").lower() in ("true", "1", "yes")
+)
+
+if not _secret:
+    if _is_dev_mode:
+        SECRET_KEY = "dev_only_default_secret_key_do_not_use_in_production"
+    else:
+        raise RuntimeError(
+            "FATAL SECURITY CONFIGURATION ERROR: SECRET_KEY environment variable is not set. "
+            "Please define SECRET_KEY in your .env file or environment, or set DEBUG=true for local development."
+        )
+else:
+    SECRET_KEY = _secret
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
 

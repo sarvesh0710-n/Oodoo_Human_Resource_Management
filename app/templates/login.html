@@ -82,7 +82,8 @@
 
                 document.cookie = `access_token=Bearer ${data.access_token}; path=/; max-age=86400`;
                 localStorage.setItem('token', data.access_token);
-                window.location.href = '/dashboard';
+                const landing = data.role === 'admin_hr' ? '/admin-dashboard' : '/dashboard';
+                window.location.href = landing;
             } catch (err) {
                 errorDiv.textContent = 'Server error. Please try again.';
                 errorDiv.style.display = 'block';
