@@ -1,11 +1,4 @@
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
 # Byte-compiled / optimized files
-=======
-# Byte-compiled / optimized / DLL files
->>>>>>> fe13753 (feat(db): setup SQLAlchemy 2.0 database layer and initial Alembic migration)
->>>>>>> 767d4fb (chore : created makefile)
 __pycache__/
 *.py[cod]
 *$py.class
@@ -13,15 +6,15 @@ __pycache__/
 # C extensions
 *.so
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 # Environment variables & virtual environments
 .env
 .venv/
 venv/
-=======
-=======
->>>>>>> 767d4fb (chore : created makefile)
+env/
+ENV/
+env.bak/
+venv.bak/
+
 # Distribution / packaging
 .Python
 build/
@@ -40,42 +33,6 @@ wheels/
 .installed.cfg
 *.egg
 
-# Virtual environments
-venv/
-.venv/
-env/
-<<<<<<< HEAD
-
-=======
-=======
-# Environment variables & virtual environments
-.env
-.venv/
-venv/
->>>>>>> fe13753 (feat(db): setup SQLAlchemy 2.0 database layer and initial Alembic migration)
->>>>>>> 767d4fb (chore : created makefile)
-ENV/
-env.bak/
-venv.bak/
-
-<<<<<<< HEAD
-
-# IDE / Editor configuration
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# Database & SQLite files
-*.sqlite3
-*.db
-
-# Logs & dumps
-*.log
-=======
-=======
-<<<<<<< HEAD
->>>>>>> 767d4fb (chore : created makefile)
 # IDEs and Editors
 .idea/
 .vscode/
@@ -91,6 +48,8 @@ venv.bak/
 filestore/
 sessions/
 *.dump
+*.sqlite3
+*.db
 
 # Operating System files
 .DS_Store
@@ -101,17 +60,3 @@ Thumbs.db
 .coverage.*
 htmlcov/
 .pytest_cache/
-=======
-# IDE / Editor configuration
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# Database & SQLite files
-*.sqlite3
-*.db
-
-# Logs & dumps
-*.log
->>>>>>> fe13753 (feat(db): setup SQLAlchemy 2.0 database layer and initial Alembic migration)
