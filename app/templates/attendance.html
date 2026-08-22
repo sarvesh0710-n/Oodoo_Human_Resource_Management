@@ -3,17 +3,33 @@
 {% block title %}Attendance Calendar — Dayflow HRMS{% endblock %}
 
 {% block content %}
-<div style="margin-bottom: 2rem;">
-    <h1 style="margin-bottom: 0.25rem;">Attendance Calendar</h1>
-    <p style="color: var(--slate-muted);">Monthly attendance calendar and daily shift records.</p>
+<div style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center;">
+    <div>
+        <h1 style="margin-bottom: 0.25rem;">Attendance Calendar</h1>
+        <p style="color: var(--slate-muted);">Monthly shift tracking, calendar logs, and attendance summary.</p>
+    </div>
+    {% if user.role == 'admin_hr' %}
+    <div style="min-width: 240px;">
+        <select id="emp-filter" onchange="renderAttendanceView()" class="form-control" style="background: var(--surface-card); font-weight: 600;">
+            <option value="all">All Staff (Company Summary)</option>
+            {% for emp in all_employees %}
+                <option value="{{ emp.id }}">#EMP-{{ emp.id }} {{ emp.first_name }} {{ emp.last_name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    {% endif %}
 </div>
 
 <!-- Calendar Section -->
 <div class="card">
     <div class="card-header">
-        <div>
-            <h3 class="card-title">Monthly View</h3>
-            <p id="calendar-month-title" class="card-subtitle">Current Month</p>
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <button onclick="changeMonth(-1)" class="btn btn-secondary btn-sm" aria-label="Previous Month">&larr;</button>
+            <div>
+                <h3 id="calendar-month-title" class="card-title" style="margin: 0;">August 2026</h3>
+                <p class="card-subtitle">Monthly shift overview</p>
+            </div>
+            <button onclick="changeMonth(1)" class="btn btn-secondary btn-sm" aria-label="Next Month">&rarr;</button>
         </div>
         <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
             <span class="status-pill present">Present</span>
@@ -38,7 +54,7 @@
     <div class="card-header">
         <div>
             <h3 class="card-title">Detailed Logs</h3>
-            <p class="card-subtitle">Complete shift records</p>
+            <p class="card-subtitle">Complete shift records for period</p>
         </div>
     </div>
 
@@ -58,7 +74,7 @@
             </thead>
             <tbody id="attendance-table-body">
                 <tr>
-                    <td colspan="{% if user.role == 'admin_hr' %}6{% else %}5{% endif %}" style="text-align: center; color: var(--text-muted);">Loading logs...</td>
+                    <td colspan="{% if user.role == 'admin_hr' %}6{% else %}5{% endif %}" style="text-align: center; color: var(--slate-muted);">Loading logs...</td>
                 </tr>
             </tbody>
         </table>
@@ -68,6 +84,9 @@
 
 {% block extra_scripts %}
 <script>
+    let rawAttendanceData = [];
+    let currentNavDate = new Date(); // Defaults to current date (August 2026)
+
     function calculateShiftHours(inTime, outTime) {
         if (!inTime || !outTime) return '—';
         try {
@@ -82,82 +101,111 @@
         }
     }
 
+    function changeMonth(delta) {
+        currentNavDate.setMonth(currentNavDate.getMonth() + delta);
+        renderAttendanceView();
+    }
+
     async function loadAttendanceData() {
         try {
             const res = await fetch('/api/attendance');
-            const data = await res.json();
-
-            // 1. Build Detailed Table (sorted descending by date)
-            const tbody = document.getElementById('attendance-table-body');
-            const isAdmin = {{ 'true' if user.role == 'admin_hr' else 'false' }};
-
-            if (!data || data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="${isAdmin ? 6 : 5}" style="text-align:center; color: var(--text-muted);">No attendance records found for this period.</td></tr>`;
-            } else {
-                const sorted = [...data].sort((a, b) => new Date(b.date) - new Date(a.date));
-                tbody.innerHTML = sorted.map(row => `
-                    <tr>
-                        ${isAdmin ? `<td style="font-weight: 600;">${escapeHtml(row.employee_name || 'Emp #' + row.employee_id)}</td>` : ''}
-                        <td style="font-weight: 600;">${formatDateDDMMYYYY(row.date)}</td>
-                        <td>${row.check_in || '—'}</td>
-                        <td>${row.check_out || '—'}</td>
-                        <td>${calculateShiftHours(row.check_in, row.check_out)}</td>
-                        <td><span class="status-pill ${escapeHtml(row.status)}">${escapeHtml(row.status)}</span></td>
-                    </tr>
-                `).join('');
-            }
-
-            // 2. Build Dynamic Calendar Grid for current month
-            const grid = document.getElementById('calendar-days-container');
-            const now = new Date();
-            const year = now.getFullYear();
-            const month = now.getMonth(); // 0-indexed
-
-            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-            document.getElementById('calendar-month-title').textContent = `${monthNames[month]} ${year}`;
-
-            // First day of month offset (0=Mon, 6=Sun)
-            const firstDayIndex = (new Date(year, month, 1).getDay() + 6) % 7;
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-            let html = '';
-            for (let i = 0; i < firstDayIndex; i++) {
-                html += `<div class="calendar-day empty"></div>`;
-            }
-
-            // Map records by YYYY-MM-DD
-            const recordMap = {};
-            data.forEach(r => { recordMap[r.date] = r; });
-
-            for (let day = 1; day <= daysInMonth; day++) {
-                const dayPadded = String(day).padStart(2, '0');
-                const monthPadded = String(month + 1).padStart(2, '0');
-                const dayStr = `${year}-${monthPadded}-${dayPadded}`;
-
-                const dayOfWeek = (firstDayIndex + day - 1) % 7;
-                const isWeekend = (dayOfWeek === 5 || dayOfWeek === 6);
-                const rec = recordMap[dayStr];
-
-                let pillHtml = '';
-                if (rec) {
-                    pillHtml = `<span class="status-pill ${rec.status}" style="font-size: 0.7rem;">${rec.status}</span>`;
-                } else if (isWeekend) {
-                    pillHtml = `<span style="font-size: 0.75rem; color: var(--slate-muted);">Weekend</span>`;
-                }
-
-                html += `
-                    <div class="calendar-day ${isWeekend ? 'empty' : ''}">
-                        <div class="day-number">${day}</div>
-                        <div>${pillHtml}</div>
-                    </div>
-                `;
-            }
-
-            grid.innerHTML = html;
-
+            rawAttendanceData = await res.json();
+            renderAttendanceView();
         } catch (e) {
-            console.error(e);
+            console.error('Failed to load attendance data:', e);
         }
+    }
+
+    function renderAttendanceView() {
+        const isAdmin = {{ 'true' if user.role == 'admin_hr' else 'false' }};
+        const empFilterEl = document.getElementById('emp-filter');
+        const selectedEmpId = empFilterEl ? empFilterEl.value : 'all';
+
+        // Filter data by selected employee if specified
+        let filteredData = rawAttendanceData;
+        if (selectedEmpId !== 'all') {
+            filteredData = rawAttendanceData.filter(r => String(r.employee_id) === String(selectedEmpId));
+        }
+
+        // 1. Render Table
+        const tbody = document.getElementById('attendance-table-body');
+        if (!filteredData || filteredData.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="${isAdmin ? 6 : 5}" style="text-align:center; color: var(--slate-muted);">No attendance records found for this view.</td></tr>`;
+        } else {
+            const sorted = [...filteredData].sort((a, b) => new Date(b.date) - new Date(a.date));
+            tbody.innerHTML = sorted.map(row => `
+                <tr>
+                    ${isAdmin ? `<td style="font-weight: 600;">${escapeHtml(row.employee_name || 'Emp #' + row.employee_id)}</td>` : ''}
+                    <td style="font-weight: 600;">${formatDateDDMMYYYY(row.date)}</td>
+                    <td>${row.check_in || '—'}</td>
+                    <td>${row.check_out || '—'}</td>
+                    <td>${calculateShiftHours(row.check_in, row.check_out)}</td>
+                    <td><span class="status-pill ${escapeHtml(row.status)}">${escapeHtml(row.status)}</span></td>
+                </tr>
+            `).join('');
+        }
+
+        // 2. Render Calendar Grid for currentNavDate
+        const grid = document.getElementById('calendar-days-container');
+        const year = currentNavDate.getFullYear();
+        const month = currentNavDate.getMonth();
+
+        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        document.getElementById('calendar-month-title').textContent = `${monthNames[month]} ${year}`;
+
+        // First day of month index (0=Mon, 6=Sun)
+        const firstDayIndex = (new Date(year, month, 1).getDay() + 6) % 7;
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+        let html = '';
+        for (let i = 0; i < firstDayIndex; i++) {
+            html += `<div class="calendar-day empty"></div>`;
+        }
+
+        // Group records by YYYY-MM-DD
+        const dateRecordMap = {};
+        filteredData.forEach(r => {
+            if (!dateRecordMap[r.date]) dateRecordMap[r.date] = [];
+            dateRecordMap[r.date].push(r);
+        });
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dayPadded = String(day).padStart(2, '0');
+            const monthPadded = String(month + 1).padStart(2, '0');
+            const dayStr = `${year}-${monthPadded}-${dayPadded}`;
+
+            const dayOfWeek = (firstDayIndex + day - 1) % 7;
+            const isWeekend = (dayOfWeek === 5 || dayOfWeek === 6);
+            const dayRecords = dateRecordMap[dayStr] || [];
+
+            let pillHtml = '';
+            if (dayRecords.length > 0) {
+                if (selectedEmpId !== 'all' || dayRecords.length === 1) {
+                    const rec = dayRecords[0];
+                    pillHtml = `<span class="status-pill ${rec.status}" style="font-size: 0.7rem;">${rec.status}</span>`;
+                } else {
+                    // Summary counts for all staff view
+                    const presentCnt = dayRecords.filter(r => r.status === 'present').length;
+                    const leaveCnt = dayRecords.filter(r => r.status === 'leave').length;
+                    const lateCnt = dayRecords.filter(r => r.status === 'late').length;
+
+                    if (presentCnt > 0) pillHtml += `<span class="status-pill present" style="font-size: 0.7rem;">${presentCnt} Present</span> `;
+                    if (leaveCnt > 0) pillHtml += `<span class="status-pill leave" style="font-size: 0.7rem;">${leaveCnt} Leave</span> `;
+                    if (lateCnt > 0) pillHtml += `<span class="status-pill half_day" style="font-size: 0.7rem;">${lateCnt} Late</span>`;
+                }
+            } else if (isWeekend) {
+                pillHtml = `<span style="font-size: 0.75rem; color: var(--slate-muted);">Weekend</span>`;
+            }
+
+            html += `
+                <div class="calendar-day ${isWeekend ? 'empty' : ''}">
+                    <div class="day-number">${day}</div>
+                    <div style="display: flex; flex-direction: column; gap: 3px; margin-top: 4px;">${pillHtml}</div>
+                </div>
+            `;
+        }
+
+        grid.innerHTML = html;
     }
 
     loadAttendanceData();

@@ -66,12 +66,14 @@ def attendance_page(
     db: Session = Depends(get_db),
 ):
     employee = db.query(Employee).filter(Employee.user_id == current_user.id).first()
+    all_employees = db.query(Employee).all() if current_user.role == "admin_hr" else []
     return templates.TemplateResponse(
         request=request,
         name="attendance.html",
         context={
             "user": current_user,
             "employee": employee,
+            "all_employees": all_employees,
         },
     )
 
