@@ -17,6 +17,12 @@ class DepartmentCreate(BaseModel):
     manager_id: Optional[int] = None
 
 
+class DepartmentUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    manager_id: Optional[int] = None
+
+
 class DepartmentRead(BaseModel):
     id: int
     name: str
@@ -75,18 +81,20 @@ def create_department(
 @router.patch("/{department_id}", response_model=DepartmentRead)
 def update_department(
     department_id: int,
-    payload: DepartmentCreate,
+    payload: DepartmentUpdate,
     current_user: User = Depends(require_role(["admin_hr"])),
     db: Session = Depends(get_db),
 ):
     dept = db.query(Department).filter(Department.id == department_id).first()
     if not dept:
         raise HTTPException(status_code=404, detail="Department not found")
-    
-    dept.name = payload.name
+
+    if payload.name is not None:
+        dept.name = payload.name
     if payload.description is not None:
         dept.description = payload.description
     dept.manager_id = payload.manager_id
+
     db.commit()
     db.refresh(dept)
 
