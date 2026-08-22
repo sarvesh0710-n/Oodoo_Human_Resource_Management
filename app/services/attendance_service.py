@@ -27,7 +27,6 @@ def get_attendance_records(
     else:
         # Admin / HR role
         if employee_id_param:
-            # DESIGN DECISION: Querying attendance for a non-existent employee_id returns HTTP 404 instead of a misleading empty list
             target_emp = db.query(Employee).filter(Employee.id == employee_id_param).first()
             if not target_emp:
                 raise HTTPException(
@@ -43,7 +42,6 @@ def check_in(db: Session, current_user: User, check_in_time: Optional[time] = No
     if not emp:
         raise HTTPException(status_code=404, detail="Employee record not found")
 
-    # DESIGN DECISION: Midnight boundary date.today() uses server timezone authority consistently
     today = date.today()
 
     existing = db.query(Attendance).filter(
@@ -51,6 +49,11 @@ def check_in(db: Session, current_user: User, check_in_time: Optional[time] = No
     ).first()
 
     if existing:
+        if existing.status == "leave":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Employee is on approved leave today",
+            )
         if existing.check_in is not None:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -87,20 +90,32 @@ def check_out(db: Session, current_user: User, check_out_time: Optional[time] = 
         Attendance.employee_id == emp.id, Attendance.date == today
     ).first()
 
+    if existing and existing.status == "leave":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Employee is on approved leave today",
+        )
+
     if not existing or existing.check_in is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cannot check out without prior check-in today",
         )
 
-    # DESIGN DECISION: Zero-duration shift (check_out == check_in) is rejected; check_out must be strictly after check_in
-    if check_out_time is not None and check_out_time <= existing.check_in:
+    if existing.check_out is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Already checked out today",
+        )
+
+    now_time = check_out_time if check_out_time is not None else datetime.now().time()
+
+    if now_time <= existing.check_in:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Check-out time must be strictly after check-in time",
         )
 
-    now_time = check_out_time if check_out_time is not None else datetime.now().time()
     existing.check_out = now_time
     existing.status = "present"
     db.commit()

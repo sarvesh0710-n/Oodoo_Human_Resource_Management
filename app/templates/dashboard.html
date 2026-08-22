@@ -125,22 +125,37 @@
         try {
             const res = await fetch('/api/attendance');
             const data = await res.json();
-            const todayStr = new Date().toISOString().split('T')[0];
-            const todayRec = data.find(r => r.date === todayStr);
+            
+            const d = new Date();
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            const todayLocal = `${year}-${month}-${day}`;
+            const todayUtc = d.toISOString().split('T')[0];
+
+            const todayRec = data.find(r => r.date === todayLocal || r.date === todayUtc);
 
             const container = document.getElementById('today-status-container');
             const btnIn = document.getElementById('btn-checkin');
             const btnOut = document.getElementById('btn-checkout');
 
             if (todayRec) {
-                if (todayRec.check_out) {
-                    container.innerHTML = `<span class="status-pill present">Completed (${escapeHtml(todayRec.check_in || '')} - ${escapeHtml(todayRec.check_out || '')})</span>`;
+                if (todayRec.status === 'leave') {
+                    container.innerHTML = `<span class="status-pill leave">On Leave Today</span>`;
                     btnIn.disabled = true;
                     btnOut.disabled = true;
-                } else {
+                } else if (todayRec.check_out) {
+                    container.innerHTML = `<span class="status-pill present">Shift Completed (${escapeHtml(todayRec.check_in || '')} - ${escapeHtml(todayRec.check_out || '')})</span>`;
+                    btnIn.disabled = true;
+                    btnOut.disabled = true;
+                } else if (todayRec.check_in) {
                     container.innerHTML = `<span class="status-pill present">Checked In (${escapeHtml(todayRec.check_in || 'Active')})</span>`;
                     btnIn.disabled = true;
                     btnOut.disabled = false;
+                } else {
+                    container.innerHTML = `<span class="status-pill pending">Not Checked In</span>`;
+                    btnIn.disabled = false;
+                    btnOut.disabled = true;
                 }
             } else {
                 container.innerHTML = `<span class="status-pill pending">Not Checked In</span>`;
@@ -150,8 +165,8 @@
 
             // Update stats
             const presentCount = data.filter(r => r.status === 'present').length;
-            document.getElementById('stat-present-count').textContent = presentCount || 18;
-            document.getElementById('stat-hours-count').textContent = (presentCount * 8 || 144) + ' hrs';
+            document.getElementById('stat-present-count').textContent = presentCount || 0;
+            document.getElementById('stat-hours-count').textContent = (presentCount * 8 || 0) + ' hrs';
         } catch (e) {
             console.error(e);
         }
