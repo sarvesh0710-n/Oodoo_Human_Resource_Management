@@ -39,8 +39,13 @@ app.include_router(leave.router)
 app.include_router(payroll.router)
 app.include_router(departments.router)
 
-# Include Web UI router
-app.include_router(views.router)
+# TEMPLATES ROUTER - DISABLED PER USER DIRECTIVE
+# app.include_router(views.router)
+
+# Mount React SPA distribution static files if frontend/dist exists
+if os.path.exists("frontend/dist"):
+    app.mount("/", StaticFiles(directory="frontend/dist", html=True), name="spa")
+
 
 
 @app.on_event("startup")
