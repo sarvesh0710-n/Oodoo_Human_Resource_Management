@@ -63,27 +63,41 @@
     </div>
 </div>
 
-<!-- Department Breakdown & Pending Action Cards -->
-<div class="grid-2">
-    <!-- Department Breakdown -->
-    <div class="card">
+<!-- Department Breakdown & Chart Cards Grid -->
+<div class="grid-2" style="margin-bottom: 2rem;">
+    <!-- Department Leave Analytics Chart -->
+    <div class="card" style="margin-bottom: 0;">
         <div class="card-header">
             <div>
-                <h3 class="card-title">Department Distribution</h3>
-                <p class="card-subtitle">Headcount allocation by team</p>
+                <h3 class="card-title">Department Leave Distribution</h3>
+                <p class="card-subtitle">Total leave applications per department</p>
+            </div>
+            <a href="/leave-approvals" class="btn btn-secondary btn-sm">Approvals</a>
+        </div>
+        <div style="height: 240px; position: relative; display: flex; justify-content: center; align-items: center; padding: 10px;">
+            <canvas id="deptLeaveChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Department Headcount Breakdown -->
+    <div class="card" style="margin-bottom: 0;">
+        <div class="card-header">
+            <div>
+                <h3 class="card-title">Department Headcount</h3>
+                <p class="card-subtitle">Active team allocation by department</p>
             </div>
             <a href="/departments" class="btn btn-secondary btn-sm">Manage</a>
         </div>
 
-        <div style="display: flex; flex-direction: column; gap: 1rem;">
+        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
             {% for d in departments %}
-            <div style="background: var(--sand-surface); padding: 1.1rem; border-radius: var(--radius-md); display: flex; justify-content: space-between; align-items: center;">
+            <div style="background: var(--sand-surface); padding: 0.85rem 1.1rem; border-radius: var(--radius-md); display: flex; justify-content: space-between; align-items: center;">
                 <div>
                     <div style="font-weight: 600; color: var(--slate-heading);">{{ d.name }}</div>
-                    <div style="font-size: 0.85rem; color: var(--slate-muted);">{{ d.description or 'Core Department' }}</div>
+                    <div style="font-size: 0.8rem; color: var(--slate-muted);">{{ d.description or 'Core Department' }}</div>
                 </div>
                 <span class="role-badge employee">
-                    Team Members
+                    Active Unit
                 </span>
             </div>
             {% else %}
@@ -93,41 +107,97 @@
             {% endfor %}
         </div>
     </div>
+</div>
 
-    <!-- Quick Shortcuts & Audit Feed -->
-    <div class="card">
-        <div class="card-header">
-            <div>
-                <h3 class="card-title">Admin Workflows</h3>
-                <p class="card-subtitle">Direct shortcuts to HR actions</p>
-            </div>
-        </div>
-
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
-            <a href="/leave-approvals" class="card" style="margin: 0; padding: 1.25rem; text-decoration: none; text-align: center;">
-                <div class="stat-icon terracotta" style="margin: 0 auto 0.75rem auto;">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-                </div>
-                <div style="font-weight: 600; color: var(--slate-heading);">Leave Approvals</div>
-                <div style="font-size: 0.8rem; color: var(--slate-muted);">Review pending requests</div>
-            </a>
-
-            <a href="/admin-payroll" class="card" style="margin: 0; padding: 1.25rem; text-decoration: none; text-align: center;">
-                <div class="stat-icon ochre" style="margin: 0 auto 0.75rem auto;">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-                </div>
-                <div style="font-weight: 600; color: var(--slate-heading);">Generate Payslips</div>
-                <div style="font-size: 0.8rem; color: var(--slate-muted);">Run monthly payroll</div>
-            </a>
-        </div>
-
-        <div style="background: var(--sand-surface); border: 1px solid var(--sand-border); padding: 1rem 1.25rem; border-radius: var(--radius-md);">
-            <div style="font-size: 0.825rem; font-weight: 700; text-transform: uppercase; color: var(--slate-muted); margin-bottom: 0.5rem; letter-spacing: 0.04em;">System Status</div>
-            <div style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.875rem;">
-                <span class="status-pill approved" style="padding: 0.2rem 0.6rem;">Operational</span>
-                <span style="color: var(--slate-muted);">Database connected & RBAC active</span>
-            </div>
+<!-- Admin Shortcuts Row -->
+<div class="card">
+    <div class="card-header">
+        <div>
+            <h3 class="card-title">Admin Workflows & Quick Actions</h3>
+            <p class="card-subtitle">Direct shortcuts to key administrative tasks</p>
         </div>
     </div>
+
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+        <a href="/leave-approvals" class="card" style="margin: 0; padding: 1.25rem; text-decoration: none; text-align: center; background: var(--sand-surface);">
+            <div class="stat-icon terracotta" style="margin: 0 auto 0.75rem auto;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            </div>
+            <div style="font-weight: 600; color: var(--slate-heading);">Leave Approvals</div>
+            <div style="font-size: 0.8rem; color: var(--slate-muted);">Review pending requests</div>
+        </a>
+
+        <a href="/admin-payroll" class="card" style="margin: 0; padding: 1.25rem; text-decoration: none; text-align: center; background: var(--sand-surface);">
+            <div class="stat-icon ochre" style="margin: 0 auto 0.75rem auto;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+            </div>
+            <div style="font-weight: 600; color: var(--slate-heading);">Generate Payslips</div>
+            <div style="font-size: 0.8rem; color: var(--slate-muted);">Run monthly payroll</div>
+        </a>
+
+        <a href="/employees" class="card" style="margin: 0; padding: 1.25rem; text-decoration: none; text-align: center; background: var(--sand-surface);">
+            <div class="stat-icon sage" style="margin: 0 auto 0.75rem auto;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+            </div>
+            <div style="font-weight: 600; color: var(--slate-heading);">Employee Directory</div>
+            <div style="font-size: 0.8rem; color: var(--slate-muted);">Onboard & view staff</div>
+        </a>
+    </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    async function renderDeptLeaveChart() {
+        try {
+            const res = await fetch('/api/leave/analytics/department-summary');
+            const data = await res.json();
+            
+            const labels = data.map(item => item.department_name);
+            const counts = data.map(item => item.leave_count);
+            
+            const canvas = document.getElementById('deptLeaveChart');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: counts,
+                        backgroundColor: [
+                            '#1E4D3B',
+                            '#2A6B53',
+                            '#419375',
+                            '#65B597',
+                            '#91D4BD',
+                            '#C1E8D9'
+                        ],
+                        borderWidth: 2,
+                        borderColor: '#FFFFFF'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                font: { family: 'Inter', size: 12 },
+                                color: '#14382B'
+                            }
+                        }
+                    }
+                }
+            });
+        } catch (err) {
+            console.error('Failed to render department leave chart:', err);
+        }
+    }
+
+    renderDeptLeaveChart();
+</script>
 {% endblock %}

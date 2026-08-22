@@ -150,7 +150,7 @@
                     <td style="font-weight: 600;">#EMP-${e.id}</td>
                     <td style="font-weight: 600;">${escapeHtml(e.first_name)} ${escapeHtml(e.last_name)}</td>
                     <td>${escapeHtml(e.job_title || 'Staff Member')}</td>
-                    <td>${e.department_id ? '<span class="role-badge employee">Dept #' + e.department_id + '</span>' : 'Unassigned'}</td>
+                    <td>${e.department_name ? '<span class="role-badge employee">' + escapeHtml(e.department_name) + '</span>' : 'Unassigned'}</td>
                     <td>${escapeHtml(e.phone || '—')}</td>
                     <td>${formatDateDDMMYYYY(e.joining_date)}</td>
                 </tr>
