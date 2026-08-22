@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+
+{% block title %}Leave & Time-Off — Dayflow HRMS{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
+    <div>
+        <h1 style="margin-bottom: 4px;">Leave & Time-Off</h1>
+        <p style="color: var(--text-muted); font-size: 0.85rem;">Apply for leave, track quotas, and check approval status.</p>
+    </div>
+    <button onclick="openLeaveModal()" class="btn btn-primary">
+        + New Leave Request
+    </button>
+</div>
+
+<!-- Quota Cards -->
+<div class="grid-3" style="margin-bottom: 16px;">
+    {% for lt in leave_types %}
+    <div class="card" style="margin-bottom: 0;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+            <div>
+                <h4>{{ lt.name }}</h4>
+                <p style="font-size: 0.8rem; color: var(--text-muted);">{{ lt.description }}</p>
+            </div>
+            <span class="role-badge {% if lt.is_paid %}employee{% else %}admin{% endif %}">
+                {{ 'Paid' if lt.is_paid else 'Unpaid' }}
+            </span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 12px;">
+            <span style="font-size: 1.5rem; font-weight: 700; color: var(--green-dark);">12 <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 400;">days left</span></span>
+            <span style="font-size: 0.775rem; color: var(--text-muted);">Quota: 14 days/yr</span>
+        </div>
+    </div>
+    {% else %}
+    <div class="card" style="margin-bottom: 0;">
+        <h4>Standard Paid Leave</h4>
+        <p style="font-size: 0.8rem; color: var(--text-muted);">15 days available</p>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Requests History -->
+<div class="card">
+    <div class="card-header">
+        <div>
+            <h3 class="card-title">Leave Request History</h3>
+            <p class="card-subtitle">All past and upcoming leave applications</p>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="organic-table">
+            <thead>
+                <tr>
+                    <th>Leave Type</th>
+                    <th>Start Date (DD/MM/YYYY)</th>
+                    <th>End Date (DD/MM/YYYY)</th>
+                    <th>Remarks</th>
+                    <th>Status</th>
+                    <th>Reviewer Comment</th>
+                </tr>
+            </thead>
+            <tbody id="leave-history-table">
+                <tr>
+                    <td colspan="6" style="text-align: center; color: var(--text-muted);">Loading leave history...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Leave Request Modal with Custom Green DatePicker -->
+<div id="leave-modal" class="modal-backdrop">
+    <div class="modal-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+            <h3 class="card-title" style="margin: 0;">Request Time Off</h3>
+            <button onclick="closeLeaveModal()" style="background: transparent; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-muted);">&times;</button>
+        </div>
+
+        <form id="leave-form">
+            <div class="form-group">
+                <label for="leave_type_id">Leave Type</label>
+                <select id="leave_type_id" required>
+                    {% for lt in leave_types %}
+                        <option value="{{ lt.id }}">{{ lt.name }}</option>
+                    {% else %}
+                        <option value="1">Paid Leave</option>
+                        <option value="2">Sick Leave</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>Start Date (DD/MM/YYYY)</label>
+                    <input type="text" id="start_date_display" placeholder="DD/MM/YYYY" required>
+                    <input type="hidden" id="start_date_iso">
+                </div>
+                <div class="form-group">
+                    <label>End Date (DD/MM/YYYY)</label>
+                    <input type="text" id="end_date_display" placeholder="DD/MM/YYYY" required>
+                    <input type="hidden" id="end_date_iso">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="remarks">Reason / Remarks</label>
+                <textarea id="remarks" rows="3" placeholder="Briefly describe your leave reason..."></textarea>
+            </div>
+
+            <div style="display: flex; gap: 8px; margin-top: 14px;">
+                <button type="button" onclick="closeLeaveModal()" class="btn btn-secondary" style="flex: 1;">Cancel</button>
+                <button type="submit" class="btn btn-primary" style="flex: 1;">Submit Request</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function openLeaveModal() {
+        document.getElementById('leave-modal').classList.add('open');
+    }
+    function closeLeaveModal() {
+        document.getElementById('leave-modal').classList.remove('open');
+    }
+
+    // Initialize Green Custom DatePickers
+    setupCustomDatePicker('start_date_display', 'start_date_iso', new Date());
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    setupCustomDatePicker('end_date_display', 'end_date_iso', tomorrow);
+
+    async function loadLeaveRequests() {
+        try {
+            const res = await fetch('/api/leave/requests');
+            const data = await res.json();
+            const tbody = document.getElementById('leave-history-table');
+
+            if (!data || data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">No leave requests submitted yet.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = data.map(r => `
+                <tr>
+                    <td style="font-weight: 600;">Type #${r.leave_type_id}</td>
+                    <td style="font-weight: 600; color: var(--green-dark);">${formatDateDDMMYYYY(r.start_date)}</td>
+                    <td style="font-weight: 600; color: var(--green-dark);">${formatDateDDMMYYYY(r.end_date)}</td>
+                    <td>${r.remarks || '—'}</td>
+                    <td><span class="status-pill ${r.status}">${r.status}</span></td>
+                    <td style="color: var(--text-muted); font-size: 0.825rem;">${r.review_comment || '—'}</td>
+                </tr>
+            `).join('');
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    document.getElementById('leave-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const payload = {
+            leave_type_id: parseInt(document.getElementById('leave_type_id').value),
+            start_date: document.getElementById('start_date_iso').value,
+            end_date: document.getElementById('end_date_iso').value,
+            remarks: document.getElementById('remarks').value
+        };
+
+        try {
+            const res = await fetch('/api/leave/requests', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                showToast('Leave request submitted successfully!');
+                closeLeaveModal();
+                loadLeaveRequests();
+            } else {
+                const data = await res.json();
+                showToast(data.detail || 'Submission failed', 'error');
+            }
+        } catch (err) {
+            showToast('Server error while submitting request', 'error');
+        }
+    });
+
+    loadLeaveRequests();
+</script>
+{% endblock %}

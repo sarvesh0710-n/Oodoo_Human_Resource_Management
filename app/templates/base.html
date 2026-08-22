@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Dayflow HRMS{% endblock %}</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+    <!-- Header Navbar -->
+    <header class="navbar">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            {% if user %}
+            <button class="mobile-toggle" onclick="toggleMobileMenu()" aria-label="Toggle navigation">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+            {% endif %}
+
+            <a href="/dashboard" class="brand-container">
+                <div class="brand-icon">D</div>
+                <div>
+                    <span class="brand-title">Dayflow</span>
+                    <span class="brand-tag">HRMS</span>
+                </div>
+            </a>
+        </div>
+
+        {% if user %}
+        <div class="user-nav-profile">
+            <span class="role-badge {% if user.role == 'admin_hr' %}admin{% else %}employee{% endif %}">
+                {% if user.role == 'admin_hr' %}
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    HR Admin
+                {% else %}
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/></svg>
+                    Employee
+                {% endif %}
+            </span>
+
+            <div class="user-avatar">
+                {{ user.email[0].upper() if user.email else 'U' }}
+            </div>
+            
+            <div class="user-email-text" style="font-size: 0.85rem; font-weight: 600; color: white;">
+                {{ user.email }}
+            </div>
+
+            <button onclick="logout()" class="btn btn-secondary btn-sm">
+                Sign Out
+            </button>
+        </div>
+        {% endif %}
+    </header>
+
+    <!-- Main Layout -->
+    <div class="app-layout">
+        {% if user %}
+        <!-- Sidebar Navigation -->
+        <aside id="app-sidebar" class="sidebar">
+            <div class="sidebar-nav-heading">Main Navigation</div>
+
+            <a href="/dashboard" class="nav-item {% if request.url.path == '/dashboard' %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+                Dashboard
+            </a>
+
+            <a href="/attendance" class="nav-item {% if request.url.path == '/attendance' %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                Attendance Log
+            </a>
+
+            <a href="/leave" class="nav-item {% if request.url.path == '/leave' %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                Leave & Time-Off
+            </a>
+
+            <a href="/payroll" class="nav-item {% if request.url.path == '/payroll' %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                My Payslips
+            </a>
+
+            <a href="/profile" class="nav-item {% if request.url.path == '/profile' %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/></svg>
+                My Profile
+            </a>
+
+            {% if user.role == 'admin_hr' %}
+            <div class="sidebar-nav-heading">Admin & HR</div>
+
+            <a href="/admin-dashboard" class="nav-item {% if request.url.path == '/admin-dashboard' %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+                HR Overview
+            </a>
+
+            <a href="/employees-view" class="nav-item {% if request.url.path == '/employees-view' %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                Employee Directory
+            </a>
+
+            <a href="/leave-approvals" class="nav-item {% if request.url.path == '/leave-approvals' %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                Leave Approvals
+            </a>
+
+            <a href="/departments" class="nav-item {% if request.url.path == '/departments' %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                Departments
+            </a>
+
+            <a href="/admin-payroll" class="nav-item {% if request.url.path == '/admin-payroll' %}active{% endif %}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                Payroll Management
+            </a>
+            {% endif %}
+        </aside>
+        {% endif %}
+
+        <!-- Content Area -->
+        <main class="main-content">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <script>
+        function formatDateDDMMYYYY(dateInput) {
+            if (!dateInput) return '—';
+            if (typeof dateInput === 'string' && dateInput.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                const parts = dateInput.split('-');
+                return `${parts[2]}/${parts[1]}/${parts[0]}`;
+            }
+            const d = new Date(dateInput);
+            if (isNaN(d.getTime())) return dateInput;
+            const day = String(d.getDate()).padStart(2, '0');
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const year = d.getFullYear();
+            return `${day}/${month}/${year}`;
+        }
+
+        function toggleMobileMenu() {
+            const sidebar = document.getElementById('app-sidebar');
+            if (sidebar) {
+                sidebar.classList.toggle('mobile-open');
+            }
+        }
+
+        function logout() {
+            document.cookie = "access_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+            localStorage.removeItem("token");
+            window.location.href = "/login";
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                <span>${message}</span>
+            `;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.remove();
+            }, 3500);
+        }
+
+        // Custom Green Theme DatePicker Generator
+        function setupCustomDatePicker(displayInputId, isoHiddenInputId, initialDate = new Date()) {
+            const displayInput = document.getElementById(displayInputId);
+            const hiddenInput = document.getElementById(isoHiddenInputId);
+            if (!displayInput || !hiddenInput) return;
+
+            displayInput.classList.add('custom-date-input');
+            displayInput.readOnly = true;
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'custom-date-picker-wrapper';
+            displayInput.parentNode.insertBefore(wrapper, displayInput);
+            wrapper.appendChild(displayInput);
+
+            const popover = document.createElement('div');
+            popover.className = 'custom-calendar-popover';
+            wrapper.appendChild(popover);
+
+            let currentMonth = initialDate.getMonth();
+            let currentYear = initialDate.getFullYear();
+            let selectedDateStr = initialDate.toISOString().split('T')[0];
+
+            function setDate(dateObj) {
+                const y = dateObj.getFullYear();
+                const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+                const d = String(dateObj.getDate()).padStart(2, '0');
+                selectedDateStr = `${y}-${m}-${d}`;
+                hiddenInput.value = selectedDateStr;
+                displayInput.value = `${d}/${m}/${y}`;
+            }
+
+            setDate(initialDate);
+
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+            function renderCalendar() {
+                popover.innerHTML = `
+                    <div class="calendar-pop-header">
+                        <button type="button" class="calendar-pop-nav prev-month">&lt;</button>
+                        <span>${monthNames[currentMonth]} ${currentYear}</span>
+                        <button type="button" class="calendar-pop-nav next-month">&gt;</button>
+                    </div>
+                    <div class="calendar-pop-weekdays">
+                        <div>Mo</div><div>Tu</div><div>We</div><div>Th</div><div>Fr</div><div>Sa</div><div>Su</div>
+                    </div>
+                    <div class="calendar-pop-days"></div>
+                `;
+
+                const daysContainer = popover.querySelector('.calendar-pop-days');
+                const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+                const offset = (firstDay === 0 ? 6 : firstDay - 1);
+                const totalDays = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+                for (let i = 0; i < offset; i++) {
+                    daysContainer.appendChild(Object.assign(document.createElement('div'), { className: 'calendar-pop-day empty' }));
+                }
+
+                for (let day = 1; day <= totalDays; day++) {
+                    const dayEl = document.createElement('div');
+                    dayEl.className = 'calendar-pop-day';
+                    dayEl.textContent = day;
+
+                    const mStr = String(currentMonth + 1).padStart(2, '0');
+                    const dStr = String(day).padStart(2, '0');
+                    const thisIso = `${currentYear}-${mStr}-${dStr}`;
+
+                    if (thisIso === selectedDateStr) {
+                        dayEl.classList.add('selected');
+                    }
+
+                    dayEl.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        setDate(new Date(currentYear, currentMonth, day));
+                        popover.classList.remove('open');
+                    });
+
+                    daysContainer.appendChild(dayEl);
+                }
+
+                popover.querySelector('.prev-month').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    currentMonth--;
+                    if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+                    renderCalendar();
+                });
+
+                popover.querySelector('.next-month').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    currentMonth++;
+                    if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+                    renderCalendar();
+                });
+            }
+
+            displayInput.addEventListener('click', (e) => {
+                e.stopPropagation();
+                document.querySelectorAll('.custom-calendar-popover').forEach(p => p.classList.remove('open'));
+                renderCalendar();
+                popover.classList.add('open');
+            });
+
+            document.addEventListener('click', () => {
+                popover.classList.remove('open');
+            });
+        }
+    </script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

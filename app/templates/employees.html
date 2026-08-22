@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Employees — Dayflow HRMS{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2 class="card-title">Employee Directory</h2>
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Job Title</th>
+                    <th>Department ID</th>
+                    <th>Phone</th>
+                    <th>Joining Date</th>
+                </tr>
+            </thead>
+            <tbody id="emp-tbody">
+                <tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Loading employees...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadEmployees() {
+    const res = await fetch('/api/employees');
+    const data = await res.json();
+    const tbody = document.getElementById('emp-tbody');
+
+    if (!res.ok || data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">No employees found.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = data.map(e => `
+        <tr>
+            <td>${e.id}</td>
+            <td>${e.first_name} ${e.last_name}</td>
+            <td>${e.job_title || '--'}</td>
+            <td>${e.department_id || '--'}</td>
+            <td>${e.phone || '--'}</td>
+            <td>${formatDateDDMMYYYY(e.joining_date)}</td>
+        </tr>
+    `).join('');
+}
+
+loadEmployees();
+</script>
+{% endblock %}

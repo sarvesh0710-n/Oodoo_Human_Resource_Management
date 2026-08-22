@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block title %}Leave Approval Queue — Dayflow HRMS{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <h1 style="margin-bottom: 0.25rem;">Leave Approval Queue</h1>
+    <p style="color: var(--slate-muted);">Review and process time-off applications from staff members.</p>
+</div>
+
+<!-- Approvals Card -->
+<div class="card">
+    <div class="card-header">
+        <div>
+            <h3 class="card-title">Pending & Past Applications</h3>
+            <p class="card-subtitle">Require HR manager decision</p>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+            <button onclick="setFilter('pending')" id="btn-filter-pending" class="btn btn-primary btn-sm">Pending</button>
+            <button onclick="setFilter('all')" id="btn-filter-all" class="btn btn-secondary btn-sm">All History</button>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="organic-table">
+            <thead>
+                <tr>
+                    <th>Request ID</th>
+                    <th>Employee ID</th>
+                    <th>Leave Type</th>
+                    <th>Duration</th>
+                    <th>Remarks</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="approvals-table-body">
+                <tr>
+                    <td colspan="7" style="text-align: center; color: var(--slate-muted);">Loading pending leave requests...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Review Modal -->
+<div id="review-modal" class="modal-backdrop">
+    <div class="modal-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h3 class="card-title" style="margin: 0;">Review Leave Application</h3>
+            <button onclick="closeReviewModal()" style="background: transparent; border: none; font-size: 1.25rem; cursor: pointer; color: var(--slate-muted);">&times;</button>
+        </div>
+
+        <div id="review-modal-info" style="background: var(--sand-surface); padding: 1.25rem; border-radius: var(--radius-md); margin-bottom: 1.25rem; font-size: 0.9rem;">
+            <!-- Injected info -->
+        </div>
+
+        <div class="form-group">
+            <label for="review_comment">Review Notes / Comment</label>
+            <textarea id="review_comment" rows="3" placeholder="Optional approval or rejection note..."></textarea>
+        </div>
+
+        <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+            <button type="button" onclick="submitReview('rejected')" class="btn btn-outline-danger" style="flex: 1;">
+                Reject Request
+            </button>
+            <button type="button" onclick="submitReview('approved')" class="btn btn-primary" style="flex: 1;">
+                Approve Leave
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let activeFilter = 'pending';
+    let currentReviewId = null;
+
+    function setFilter(f) {
+        activeFilter = f;
+        document.getElementById('btn-filter-pending').className = f === 'pending' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
+        document.getElementById('btn-filter-all').className = f === 'all' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
+        loadApprovals();
+    }
+
+    async function loadApprovals() {
+        try {
+            const res = await fetch('/api/leave/requests');
+            let data = await res.json();
+            window._allLeaveRequests = data;
+
+            if (activeFilter === 'pending') {
+                data = data.filter(r => r.status === 'pending');
+            }
+
+            const tbody = document.getElementById('approvals-table-body');
+            if (!data || data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--slate-muted);">No ${activeFilter} leave applications found.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = data.map((r, idx) => `
+                <tr>
+                    <td style="font-weight: 600;">#LV-${r.id}</td>
+                    <td>Employee #${r.employee_id}</td>
+                    <td>Type #${r.leave_type_id}</td>
+                    <td>${formatDateDDMMYYYY(r.start_date)} → ${formatDateDDMMYYYY(r.end_date)}</td>
+                    <td style="color: var(--text-muted); font-size: 0.825rem;">${r.remarks || '—'}</td>
+                    <td><span class="status-pill ${r.status}">${r.status}</span></td>
+                    <td>
+                        ${r.status === 'pending' ? `
+                            <button onclick="openReviewModal(${r.id})" class="btn btn-terracotta btn-sm">
+                                Review
+                            </button>
+                        ` : `
+                            <span style="font-size: 0.8rem; color: var(--text-muted);">Processed</span>
+                        `}
+                    </td>
+                </tr>
+            `).join('');
+
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    function openReviewModal(id) {
+        currentReviewId = id;
+        const req = window._allLeaveRequests.find(r => r.id === id);
+        const info = document.getElementById('review-modal-info');
+        info.innerHTML = `
+            <div style="margin-bottom: 0.4rem;"><strong>Application ID:</strong> #LV-${req.id}</div>
+            <div style="margin-bottom: 0.4rem;"><strong>Employee ID:</strong> #${req.employee_id}</div>
+            <div style="margin-bottom: 0.4rem;"><strong>Dates (DD/MM/YYYY):</strong> ${formatDateDDMMYYYY(req.start_date)} to ${formatDateDDMMYYYY(req.end_date)}</div>
+            <div><strong>Remarks:</strong> ${req.remarks || 'None'}</div>
+        `;
+        document.getElementById('review_comment').value = '';
+        document.getElementById('review-modal').classList.add('open');
+    }
+
+    function closeReviewModal() {
+        document.getElementById('review-modal').classList.remove('open');
+    }
+
+    async function submitReview(status) {
+        if (!currentReviewId) return;
+        const comment = document.getElementById('review_comment').value;
+
+        try {
+            const res = await fetch(`/api/leave/requests/${currentReviewId}/review`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status, review_comment: comment })
+            });
+
+            if (res.ok) {
+                showToast(`Leave request ${status}!`);
+                closeReviewModal();
+                loadApprovals();
+            } else {
+                const data = await res.json();
+                showToast(data.detail || 'Review failed', 'error');
+            }
+        } catch (e) {
+            showToast('Server error while processing review', 'error');
+        }
+    }
+
+    loadApprovals();
+</script>
+{% endblock %}

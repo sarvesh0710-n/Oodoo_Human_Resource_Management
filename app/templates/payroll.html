@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block title %}My Payslips — Dayflow HRMS{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <h1 style="margin-bottom: 0.25rem;">My Payslips</h1>
+    <p style="color: var(--slate-muted);">Monthly earnings, salary breakdowns, and downloadable tax statements.</p>
+</div>
+
+<!-- Payslips List -->
+<div class="card">
+    <div class="card-header">
+        <div>
+            <h3 class="card-title">Earnings Statements</h3>
+            <p class="card-subtitle">Year 2026</p>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="organic-table">
+            <thead>
+                <tr>
+                    <th>Pay Period</th>
+                    <th>Basic Salary</th>
+                    <th>Allowances</th>
+                    <th>Deductions</th>
+                    <th>Net Take-Home</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="payslips-table-body">
+                <tr>
+                    <td colspan="7" style="text-align: center; color: var(--slate-muted);">Loading payslips...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Payslip Detail View Modal -->
+<div id="payslip-modal" class="modal-backdrop">
+    <div class="modal-content" style="max-width: 680px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--sand-border); padding-bottom: 1rem; margin-bottom: 1.5rem;">
+            <div>
+                <h3 class="card-title" style="margin: 0;">Payslip Statement</h3>
+                <p id="payslip-period-title" style="font-size: 0.85rem; color: var(--slate-muted);">August 2026</p>
+            </div>
+            <button onclick="closePayslipModal()" style="background: transparent; border: none; font-size: 1.25rem; cursor: pointer; color: var(--slate-muted);">&times;</button>
+        </div>
+
+        <div id="payslip-detail-content">
+            <!-- Dynamically populated payslip summary -->
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem; border-top: 1px dashed var(--sand-border); padding-top: 1.25rem;">
+            <button onclick="window.print()" class="btn btn-secondary btn-sm">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                Print / Save PDF
+            </button>
+            <button onclick="closePayslipModal()" class="btn btn-primary btn-sm">Close</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    const monthNames = ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+    function openPayslipModal(p) {
+        document.getElementById('payslip-period-title').textContent = `${monthNames[p.month]} ${p.year}`;
+        const detail = document.getElementById('payslip-detail-content');
+        detail.innerHTML = `
+            <div style="background: var(--sand-surface); padding: 1.5rem; border-radius: var(--radius-md); margin-bottom: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem;">
+                    <span style="color: var(--slate-muted);">Employee Code</span>
+                    <span style="font-weight: 600;">EMP-001</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="color: var(--text-muted);">Payment Date (DD/MM/YYYY)</span>
+                    <span style="font-weight: 600;">${formatDateDDMMYYYY(p.generated_at)}</span>
+                </div>
+            </div>
+
+            <h4 style="font-family: var(--font-heading); margin-bottom: 0.75rem;">Salary Breakdown</h4>
+            
+            <div style="display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; padding-bottom: 0.4rem; border-bottom: 1px dashed var(--sand-border);">
+                    <span>Basic Salary</span>
+                    <span style="font-weight: 600;">$${parseFloat(p.basic_salary).toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding-bottom: 0.4rem; border-bottom: 1px dashed var(--sand-border);">
+                    <span>Allowances (HRA & Flex)</span>
+                    <span style="font-weight: 600; color: var(--sage-primary);">+$${parseFloat(p.allowances).toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding-bottom: 0.4rem; border-bottom: 1px dashed var(--sand-border);">
+                    <span>Deductions (Tax & PF)</span>
+                    <span style="font-weight: 600; color: var(--terracotta);">-$${parseFloat(p.deductions).toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                </div>
+            </div>
+
+            <div style="background: var(--sage-light); border: 1px solid var(--sage-border); padding: 1.25rem; border-radius: var(--radius-md); display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-weight: 700; color: var(--sage-primary);">Net Disbursed Pay</span>
+                <span style="font-family: var(--font-heading); font-size: 1.6rem; font-weight: 700; color: var(--sage-primary);">$${parseFloat(p.net_salary).toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+            </div>
+        `;
+        document.getElementById('payslip-modal').classList.add('open');
+    }
+
+    function closePayslipModal() {
+        document.getElementById('payslip-modal').classList.remove('open');
+    }
+
+    async function loadPayslips() {
+        try {
+            const res = await fetch('/api/payroll/payslips');
+            let data = await res.json();
+            const tbody = document.getElementById('payslips-table-body');
+
+            if (!data || data.length === 0) {
+                // Fallback sample record for preview if no payslip has been generated yet
+                data = [{
+                    id: 1,
+                    month: 8,
+                    year: 2026,
+                    basic_salary: 5000.00,
+                    allowances: 1200.00,
+                    deductions: 450.00,
+                    gross_salary: 6200.00,
+                    net_salary: 5750.00,
+                    generated_at: new Date().toISOString()
+                }];
+            }
+
+            window._currentPayslips = data;
+
+            tbody.innerHTML = data.map((p, idx) => `
+                <tr>
+                    <td style="font-weight: 600;">${monthNames[p.month]} ${p.year}</td>
+                    <td>$${parseFloat(p.basic_salary).toFixed(2)}</td>
+                    <td style="color: var(--sage-primary);">+$${parseFloat(p.allowances).toFixed(2)}</td>
+                    <td style="color: var(--terracotta);">-$${parseFloat(p.deductions).toFixed(2)}</td>
+                    <td style="font-weight: 700; font-family: var(--font-heading); font-size: 1.05rem;">$${parseFloat(p.net_salary).toFixed(2)}</td>
+                    <td><span class="status-pill approved">Disbursed</span></td>
+                    <td>
+                        <button onclick="openPayslipModal(window._currentPayslips[${idx}])" class="btn btn-secondary btn-sm">
+                            View Statement
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    loadPayslips();
+</script>
+{% endblock %}

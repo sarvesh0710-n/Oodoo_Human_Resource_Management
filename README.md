@@ -176,14 +176,42 @@ createdb dayflow_hrms
 psql -d dayflow_hrms -f database/schema.sql
 ```
 
-### Configure connection
+---
 
-Copy and edit the environment file:
+## Running the Product using `make`
 
+The project includes a `Makefile` to quickly set up, manage, and run Dayflow HRMS.
+
+### 1. Setup Virtual Environment & Dependencies
 ```bash
-cp .env.example .env
-# Edit .env and set DATABASE_URL
+make venv
 ```
+
+### 2. Start the Product (Web Frontend & API)
+To start the application on the default port (`8000`):
+```bash
+make run
+```
+
+To run on a custom port (for instance `8001` if port 8000 is occupied):
+```bash
+make run-port PORT=8001
+```
+
+Once running, open your browser at:
+- **Login Page**: `http://localhost:8001/login` (or `http://localhost:8000/login`)
+
+#### Demo Credentials:
+- **Admin HR**: `hr@company.com` / `admin123`
+- **Employee**: `employee@company.com` / `emp123`
+
+### 3. Other Useful `make` Commands
+| Command | Description |
+|---|---|
+| `make help` | Displays list of all available Makefile commands |
+| `make test` | Executes the test suite |
+| `make db-upgrade` | Applies pending database migrations |
+| `make clean` | Cleans temporary cache and build files |
 
 ---
 

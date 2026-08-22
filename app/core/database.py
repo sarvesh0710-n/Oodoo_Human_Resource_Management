@@ -7,7 +7,7 @@ load_dotenv()
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql://postgres:postgres@localhost:5432/dayflow_hrms"
+    "sqlite:///dayflow.db"
 )
 
 engine = create_engine(DATABASE_URL, pool_pre_ping=True)

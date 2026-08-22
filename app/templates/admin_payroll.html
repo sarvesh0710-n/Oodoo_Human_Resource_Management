@@ -1,0 +1,289 @@
+{% extends "base.html" %}
+
+{% block title %}Payroll Management — Dayflow HRMS{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <h1 style="margin-bottom: 0.25rem;">Payroll & Salary Management</h1>
+    <p style="color: var(--slate-muted);">Define employee compensation structures and trigger monthly payslip generation.</p>
+</div>
+
+<!-- Action Cards Row -->
+<div class="grid-2" style="margin-bottom: 2rem;">
+    <!-- Salary Structure Form -->
+    <div class="card" style="margin-bottom: 0;">
+        <div class="card-header">
+            <div>
+                <h3 class="card-title">Salary Structure Setup</h3>
+                <p class="card-subtitle">Set base pay and allowances for an employee</p>
+            </div>
+        </div>
+
+        <form id="structure-form">
+            <div class="form-group">
+                <label for="struct_emp_id">Select Employee</label>
+                <select id="struct_emp_id" required>
+                    {% for emp in all_employees %}
+                        <option value="{{ emp.id }}">{{ emp.first_name }} {{ emp.last_name }} (Emp #{{ emp.id }})</option>
+                    {% else %}
+                        <option value="1">John Doe (Emp #1)</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="grid-3">
+                <div class="form-group">
+                    <label for="basic_salary">Basic Salary ($)</label>
+                    <input type="number" id="basic_salary" step="0.01" required placeholder="5000.00">
+                </div>
+                <div class="form-group">
+                    <label for="allowances">Allowances ($)</label>
+                    <input type="number" id="allowances" step="0.01" value="1000.00" placeholder="1000.00">
+                </div>
+                <div class="form-group">
+                    <label for="deductions">Deductions ($)</label>
+                    <input type="number" id="deductions" step="0.01" value="400.00" placeholder="400.00">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="effective_from">Effective From Date</label>
+                <input type="date" id="effective_from" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%;">
+                Save Salary Structure
+            </button>
+        </form>
+    </div>
+
+    <!-- Generate Payslip Form -->
+    <div class="card" style="margin-bottom: 0;">
+        <div class="card-header">
+            <div>
+                <h3 class="card-title">Generate Payslip</h3>
+                <p class="card-subtitle">Calculate and issue monthly earnings statement</p>
+            </div>
+        </div>
+
+        <form id="generate-form">
+            <div class="form-group">
+                <label for="gen_emp_id">Target Employee</label>
+                <select id="gen_emp_id" required>
+                    {% for emp in all_employees %}
+                        <option value="{{ emp.id }}">{{ emp.first_name }} {{ emp.last_name }} (Emp #{{ emp.id }})</option>
+                    {% else %}
+                        <option value="1">John Doe (Emp #1)</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="grid-2">
+                <div class="form-group">
+                    <label for="gen_month">Month</label>
+                    <select id="gen_month" required>
+                        <option value="1">January</option>
+                        <option value="2">February</option>
+                        <option value="3">March</option>
+                        <option value="4">April</option>
+                        <option value="5">May</option>
+                        <option value="6">June</option>
+                        <option value="7">July</option>
+                        <option value="8" selected>August</option>
+                        <option value="9">September</option>
+                        <option value="10">October</option>
+                        <option value="11">November</option>
+                        <option value="12">December</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="gen_year">Year</label>
+                    <input type="number" id="gen_year" value="2026" required>
+                </div>
+            </div>
+
+            <div style="background: var(--sand-surface); padding: 1rem; border-radius: var(--radius-md); font-size: 0.85rem; color: var(--slate-muted); margin-bottom: 1.25rem;">
+                ℹ️ Generating a payslip automatically calculates Gross & Net pay from the active salary structure.
+            </div>
+
+            <button type="submit" class="btn btn-terracotta" style="width: 100%;">
+                ⚡ Generate & Publish Payslip
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Active Salary Structures & Generated Payslips Tables -->
+<div class="grid-2">
+    <!-- Active Structures Table -->
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <h3 class="card-title">Salary Structures</h3>
+                <p class="card-subtitle">Active compensation plans</p>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="organic-table">
+                <thead>
+                    <tr>
+                        <th>Emp ID</th>
+                        <th>Basic</th>
+                        <th>Allowances</th>
+                        <th>Deductions</th>
+                        <th>Effective From</th>
+                    </tr>
+                </thead>
+                <tbody id="structures-table-body">
+                    <tr><td colspan="5" style="text-align: center; color: var(--slate-muted);">Loading structures...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Issued Payslips Table -->
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <h3 class="card-title">Issued Payslips</h3>
+                <p class="card-subtitle">All generated payslip statements</p>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="organic-table">
+                <thead>
+                    <tr>
+                        <th>Payslip ID</th>
+                        <th>Emp ID</th>
+                        <th>Period</th>
+                        <th>Net Salary</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="admin-payslips-table-body">
+                    <tr><td colspan="5" style="text-align: center; color: var(--slate-muted);">Loading payslips...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    const monthNames = ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+    document.getElementById('effective_from').valueAsDate = new Date();
+
+    async function loadStructures() {
+        try {
+            const res = await fetch('/api/payroll/structures');
+            const data = await res.json();
+            const tbody = document.getElementById('structures-table-body');
+
+            if (!data || data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--slate-muted);">No salary structures configured yet.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = data.map(s => `
+                <tr>
+                    <td style="font-weight: 600;">Emp #${s.employee_id}</td>
+                    <td>$${parseFloat(s.basic_salary).toFixed(2)}</td>
+                    <td style="color: var(--green-primary);">+$${parseFloat(s.allowances).toFixed(2)}</td>
+                    <td style="color: #8B2020;">-$${parseFloat(s.deductions).toFixed(2)}</td>
+                    <td>${formatDateDDMMYYYY(s.effective_from)}</td>
+                </tr>
+            `).join('');
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    async function loadIssuedPayslips() {
+        try {
+            const res = await fetch('/api/payroll/payslips');
+            const data = await res.json();
+            const tbody = document.getElementById('admin-payslips-table-body');
+
+            if (!data || data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--slate-muted);">No payslips generated yet.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = data.map(p => `
+                <tr>
+                    <td style="font-weight: 600;">#PS-${p.id}</td>
+                    <td>Emp #${p.employee_id}</td>
+                    <td>${monthNames[p.month]} ${p.year}</td>
+                    <td style="font-weight: 700; font-family: var(--font-heading);">$${parseFloat(p.net_salary).toFixed(2)}</td>
+                    <td><span class="status-pill approved">Generated</span></td>
+                </tr>
+            `).join('');
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    document.getElementById('structure-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const payload = {
+            employee_id: parseInt(document.getElementById('struct_emp_id').value),
+            basic_salary: parseFloat(document.getElementById('basic_salary').value),
+            allowances: parseFloat(document.getElementById('allowances').value),
+            deductions: parseFloat(document.getElementById('deductions').value),
+            effective_from: document.getElementById('effective_from').value
+        };
+
+        try {
+            const res = await fetch('/api/payroll/structures', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                showToast('Salary structure saved!');
+                loadStructures();
+            } else {
+                const data = await res.json();
+                showToast(data.detail || 'Save failed', 'error');
+            }
+        } catch (err) {
+            showToast('Server error saving salary structure', 'error');
+        }
+    });
+
+    document.getElementById('generate-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const payload = {
+            employee_id: parseInt(document.getElementById('gen_emp_id').value),
+            month: parseInt(document.getElementById('gen_month').value),
+            year: parseInt(document.getElementById('gen_year').value)
+        };
+
+        try {
+            const res = await fetch('/api/payroll/payslips', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                showToast('Payslip generated and issued!');
+                loadIssuedPayslips();
+            } else {
+                const data = await res.json();
+                showToast(data.detail || 'Generation failed. Make sure salary structure is defined.', 'error');
+            }
+        } catch (err) {
+            showToast('Server error generating payslip', 'error');
+        }
+    });
+
+    loadStructures();
+    loadIssuedPayslips();
+</script>
+{% endblock %}

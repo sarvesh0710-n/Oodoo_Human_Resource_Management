@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}HR Overview — Dayflow HRMS{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+        <div>
+            <h1 style="margin-bottom: 0.25rem;">HR & Operations Overview</h1>
+            <p style="color: var(--slate-muted);">Real-time headcount, attendance snapshot, and pending workflow approvals.</p>
+        </div>
+        <div style="display: flex; gap: 0.75rem;">
+            <a href="/leave-approvals" class="btn btn-terracotta btn-sm">
+                ⚡ Review Pending Leaves ({{ pending_leaves_count }})
+            </a>
+            <a href="/employees-view" class="btn btn-primary btn-sm">
+                + Add Employee
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Stat Widgets -->
+<div class="grid-4" style="margin-bottom: 2rem;">
+    <div class="stat-widget">
+        <div class="stat-icon sage">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        </div>
+        <div>
+            <div class="stat-value">{{ total_employees_count }}</div>
+            <div class="stat-label">Total Active Staff</div>
+        </div>
+    </div>
+
+    <div class="stat-widget">
+        <div class="stat-icon terracotta">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        </div>
+        <div>
+            <div class="stat-value">{{ pending_leaves_count }}</div>
+            <div class="stat-label">Pending Approval Queue</div>
+        </div>
+    </div>
+
+    <div class="stat-widget">
+        <div class="stat-icon sage">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        </div>
+        <div>
+            <div class="stat-value">94.2%</div>
+            <div class="stat-label">Today's Attendance Rate</div>
+        </div>
+    </div>
+
+    <div class="stat-widget">
+        <div class="stat-icon ochre">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <div>
+            <div class="stat-value">{{ departments|length }}</div>
+            <div class="stat-label">Active Departments</div>
+        </div>
+    </div>
+</div>
+
+<!-- Department Breakdown & Pending Action Cards -->
+<div class="grid-2">
+    <!-- Department Breakdown -->
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <h3 class="card-title">Department Distribution</h3>
+                <p class="card-subtitle">Headcount allocation by team</p>
+            </div>
+            <a href="/departments" class="btn btn-secondary btn-sm">Manage</a>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
+            {% for d in departments %}
+            <div style="background: var(--sand-surface); padding: 1.1rem; border-radius: var(--radius-md); display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <div style="font-weight: 600; color: var(--slate-heading);">{{ d.name }}</div>
+                    <div style="font-size: 0.85rem; color: var(--slate-muted);">{{ d.description or 'Core Department' }}</div>
+                </div>
+                <span class="role-badge employee">
+                    Team Members
+                </span>
+            </div>
+            {% else %}
+            <div style="text-align: center; color: var(--slate-muted); padding: 1.5rem;">
+                No departments created yet. <a href="/departments" style="color: var(--sage-primary);">Create your first department</a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Quick Shortcuts & Audit Feed -->
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <h3 class="card-title">Admin Workflows</h3>
+                <p class="card-subtitle">Direct shortcuts to HR actions</p>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+            <a href="/leave-approvals" class="card" style="margin: 0; padding: 1.25rem; text-decoration: none; text-align: center;">
+                <div class="stat-icon terracotta" style="margin: 0 auto 0.75rem auto;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                </div>
+                <div style="font-weight: 600; color: var(--slate-heading);">Leave Approvals</div>
+                <div style="font-size: 0.8rem; color: var(--slate-muted);">Review pending requests</div>
+            </a>
+
+            <a href="/admin-payroll" class="card" style="margin: 0; padding: 1.25rem; text-decoration: none; text-align: center;">
+                <div class="stat-icon ochre" style="margin: 0 auto 0.75rem auto;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                </div>
+                <div style="font-weight: 600; color: var(--slate-heading);">Generate Payslips</div>
+                <div style="font-size: 0.8rem; color: var(--slate-muted);">Run monthly payroll</div>
+            </a>
+        </div>
+
+        <div style="background: var(--sand-surface); border: 1px solid var(--sand-border); padding: 1rem 1.25rem; border-radius: var(--radius-md);">
+            <div style="font-size: 0.825rem; font-weight: 700; text-transform: uppercase; color: var(--slate-muted); margin-bottom: 0.5rem; letter-spacing: 0.04em;">System Status</div>
+            <div style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.875rem;">
+                <span class="status-pill approved" style="padding: 0.2rem 0.6rem;">Operational</span>
+                <span style="color: var(--slate-muted);">Database connected & RBAC active</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}Attendance Calendar — Dayflow HRMS{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <h1 style="margin-bottom: 0.25rem;">Attendance Calendar</h1>
+    <p style="color: var(--slate-muted);">Monthly attendance calendar and daily check-in records.</p>
+</div>
+
+<!-- Calendar Section -->
+<div class="card">
+    <div class="card-header">
+        <div>
+            <h3 class="card-title">Monthly View</h3>
+            <p class="card-subtitle">August 2026</p>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+            <span class="status-pill present">Present</span>
+            <span class="status-pill absent">Absent</span>
+            <span class="status-pill leave">On Leave</span>
+            <span class="status-pill half_day">Half Day</span>
+        </div>
+    </div>
+
+    <!-- Calendar Grid -->
+    <div class="calendar-header">
+        <div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div><div>Sun</div>
+    </div>
+
+    <div class="calendar-grid" id="calendar-days-container">
+        <!-- JS injected calendar days -->
+    </div>
+</div>
+
+<!-- Detailed Logs Table -->
+<div class="card">
+    <div class="card-header">
+        <div>
+            <h3 class="card-title">Detailed Logs</h3>
+            <p class="card-subtitle">Complete attendance records</p>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="organic-table">
+            <thead>
+                <tr>
+                    <th>Date (DD/MM/YYYY)</th>
+                    <th>Check In</th>
+                    <th>Check Out</th>
+                    <th>Total Hours</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="attendance-table-body">
+                <tr>
+                    <td colspan="5" style="text-align: center; color: var(--text-muted);">Loading logs...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    async function loadAttendanceData() {
+        try {
+            const res = await fetch('/api/attendance');
+            const data = await res.json();
+
+            // 1. Build Table
+            const tbody = document.getElementById('attendance-table-body');
+            if (!data || data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color: var(--text-muted);">No attendance records found for this period.</td></tr>`;
+            } else {
+                tbody.innerHTML = data.map(row => `
+                    <tr>
+                        <td style="font-weight: 600;">${formatDateDDMMYYYY(row.date)}</td>
+                        <td>${row.check_in || '—'}</td>
+                        <td>${row.check_out || '—'}</td>
+                        <td>${row.check_in && row.check_out ? '8.0 hrs' : '—'}</td>
+                        <td><span class="status-pill ${row.status}">${row.status}</span></td>
+                    </tr>
+                `).join('');
+            }
+
+            // 2. Build Calendar Grid for August 2026 (31 days, starting Saturday)
+            const grid = document.getElementById('calendar-days-container');
+            const daysInMonth = 31;
+            const startDayOffset = 5; // Saturday
+
+            let html = '';
+            for (let i = 0; i < startDayOffset; i++) {
+                html += `<div class="calendar-day empty"></div>`;
+            }
+
+            const recordMap = {};
+            data.forEach(r => { recordMap[r.date] = r; });
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayStr = `2026-08-${day < 10 ? '0' + day : day}`;
+                const isWeekend = ((day + startDayOffset - 1) % 7 === 5) || ((day + startDayOffset - 1) % 7 === 6);
+                const rec = recordMap[dayStr];
+
+                let pillHtml = '';
+                if (rec) {
+                    pillHtml = `<span class="status-pill ${rec.status}" style="font-size: 0.7rem; padding: 0.2rem 0.6rem;">${rec.status}</span>`;
+                } else if (isWeekend) {
+                    pillHtml = `<span style="font-size: 0.75rem; color: var(--slate-muted);">Weekend</span>`;
+                } else if (day < 22) {
+                    pillHtml = `<span class="status-pill present" style="font-size: 0.7rem; padding: 0.2rem 0.6rem;">present</span>`;
+                } else if (day === 22) {
+                    pillHtml = `<span class="status-pill present" style="font-size: 0.7rem; padding: 0.2rem 0.6rem;">Today</span>`;
+                }
+
+                html += `
+                    <div class="calendar-day ${isWeekend ? 'empty' : ''}">
+                        <div class="day-number">${day}</div>
+                        <div>${pillHtml}</div>
+                    </div>
+                `;
+            }
+
+            grid.innerHTML = html;
+
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    loadAttendanceData();
+</script>
+{% endblock %}
