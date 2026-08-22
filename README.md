@@ -1,253 +1,593 @@
-# Dayflow HRMS
+# Dayflow HRMS — Modern Human Resource Management System
 
-**Dayflow** is a Human Resource Management System (HRMS) built with a modern, standalone architecture using **FastAPI**, **PostgreSQL**, and **React + TypeScript**. The system digitises core HR workflows — employee onboarding, attendance tracking, leave management, payroll, and audit logging — with strict role-based access control enforced server-side at every layer.
+[![Python Version](https://img.shields.io/badge/Python-3.11%20%7C%203.12-blue.svg?logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-1.0.0-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0+-D71F00.svg?logo=sqlalchemy&logoColor=white)](https://www.sqlalchemy.org/)
+[![Alembic](https://img.shields.io/badge/Alembic-Migrations-red.svg)](https://alembic.sqlalchemy.org/)
+[![Database](https://img.shields.io/badge/Database-PostgreSQL%20%7C%20SQLite-336791.svg?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Auth](https://img.shields.io/badge/Auth-JWT%20%2B%20HttpOnly%20Cookies-000000.svg?logo=jsonwebtokens&logoColor=white)](https://jwt.io/)
+[![Design](https://img.shields.io/badge/Design-Organic%20Windows%20Green-1E4D3B.svg)](#-ui-design-system)
+[![Tests](https://img.shields.io/badge/Tests-49%20Passing-brightgreen.svg?logo=pytest&logoColor=white)](./docs/testing_guide.md)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
----
+**Dayflow HRMS** is an enterprise-grade, human-centric Human Resource Management System built with **FastAPI**, **SQLAlchemy 2.0**, **Alembic**, and **Jinja2 Server-Side Rendered Templates**. It provides a robust, production-ready solution to digitize all core HR operations — employee lifecycle management, department hierarchies, attendance logging, leave request workflows, salary structuring, immutable payslip generation, and comprehensive audit logging.
 
-## Table of Contents
-
-- [Architecture Overview](#architecture-overview)
-- [Technology Stack](#technology-stack)
-- [Project Structure](#project-structure)
-- [Database Schema](#database-schema)
-- [Role & Permission Model](#role--permission-model)
-- [Key Business Rules](#key-business-rules)
-- [Getting Started](#getting-started)
-- [Running Tests](#running-tests)
-- [Environment Variables](#environment-variables)
-- [Development Notes](#development-notes)
+The system is architected with a strict separation of concerns, offering both **interactive server-rendered web portals** and a **high-performance RESTful API**, secured by JWT tokens in HttpOnly cookies, granular Role-Based Access Control (RBAC), and server-side self-action peer guards.
 
 ---
 
-## Architecture Overview
+## 📑 Table of Contents
 
+- [Key Features](#-key-features)
+- [System Architecture](#-system-architecture)
+- [Technology Stack](#-technology-stack)
+- [Database Schema & ERD](#-database-schema--erd)
+- [Role-Based Access Control & Security](#-role-based-access-control--security)
+- [Project Directory Structure](#-project-directory-structure)
+- [Getting Started & Installation](#-getting-started--installation)
+- [Running the Application](#-running-the-application)
+- [CLI Database Management Scripts](#-cli-database-management-scripts)
+- [API Documentation](#-api-documentation)
+- [Testing & Quality Assurance](#-testing--quality-assurance)
+- [Documentation Hub](#-documentation-hub)
+- [License](#-license)
+
+---
+
+## 🌟 Key Features
+
+### 1. 🔐 Enterprise Authentication & Session Security
+- **OAuth2 JWT Token Authentication**: Encrypted `HS256` tokens stored in tamper-proof, secure `HttpOnly` cookies.
+- **Fail-Fast Security Setup**: Enforces explicit `SECRET_KEY` configuration on startup.
+- **CSRF & XSS Protection**: Strict cookie flags (`SameSite=Lax`), context-aware HTML escaping, and request verification.
+- **Password Security**: Salted `bcrypt` hashing with `passlib`.
+
+### 2. 👤 Employee Directory & Organization Hierarchy
+- **Complete Employee Profiles**: First/last name, job title, contact information, address, joining date, and avatar.
+- **1:1 Auth Isolation**: Separation between authentication identity (`User`) and organizational profile (`Employee`).
+- **Reporting Line Hierarchy**: Built-in self-referential manager linkage (`Employee.manager_id`) supporting multi-tiered organizational structures.
+
+### 3. ⏱️ Attendance & Shift Tracking
+- **One-Click Clock-In / Clock-Out**: Streamlined daily shift tracking with timestamp validation (`check_out > check_in`).
+- **Zero-Duration Rejection**: Prevents duplicate or instantaneous check-out anomalies.
+- **Dynamic Attendance Status**: Computes and derives `Present`, `Absent`, `Half-day`, and `Leave` states.
+- **Monthly Attendance Log**: Visual grid calendar and downloadable/printable log history.
+
+### 4. 📅 Time-Off & Leave Management
+- **Leave Types & Allowances**: Pre-configured categories (Paid Time Off, Medical/Sick Leave, Unpaid Leave).
+- **Date Range Overlap Prevention**: Strict server-side validation against overlapping leave windows (`start_date <= existing.end_date AND end_date >= existing.start_date`).
+- **HR Review Workflow**: Review queue for HR Administrators with approval/rejection comments and audit timestamps.
+- **Atomic Attendance Synchronization**: Approving a leave request automatically creates or updates the employee's attendance records to `status='Leave'` across the entire requested date range.
+
+### 5. 💰 Payroll & Compensation Engine
+- **Salary Structures**: Time-bound compensation packages with `basic_salary`, `allowances`, `deductions`, `effective_from`, and `effective_to`.
+- **Automatic Versioning**: Creating a new salary structure automatically closes out previous active structures.
+- **Immutable Monthly Payslips**: Generates permanent point-in-time financial snapshots (`gross_salary`, `net_salary`) unaffected by future pay adjustments.
+- **Financial Bounds**: Enforces positive values, non-negative net earnings, and an upper limit ceiling (`$10,000,000.00`).
+- **Printable Statements**: Clean CSS print styling for individual monthly payslips.
+
+### 6. 🏢 Department Management
+- Normalized departments with descriptions and assigned department heads.
+- Dynamic employee counts and department-wise employee filtering.
+
+### 7. 🛡️ System Audit Trail & Self-Action Guards (`SEC-13`)
+- **`SEC-13` Peer-Approval Guard**: Built-in safeguards (`assert_not_self_action`) preventing HR Administrators from approving their own leaves, setting their own salary structures, or generating their own payslips.
+- **Audit Logging**: Captures sensitive mutations in `audit_logs` table with user identification, action type, target entity, and timestamp.
+
+---
+
+## 🏛️ System Architecture
+
+Dayflow HRMS is built around a **Layered Domain Architecture Pattern**:
+
+```text
+               ┌─────────────────────────────────────────┐
+               │         Client Browser / REST API       │
+               └────────────────────┬────────────────────┘
+                                    │
+               ┌────────────────────▼────────────────────┐
+               │    FastAPI Presentation Layer           │
+               │   • Jinja2 HTML Views (app/web/views.py)│
+               │   • JSON REST APIs    (app/api/*.py)    │
+               └────────────────────┬────────────────────┘
+                                    │
+               ┌────────────────────▼────────────────────┐
+               │    Security & Dependency Injection      │
+               │   • JWT Cookie Auth (app/core/deps.py)  │
+               │   • Role-Based Guard (require_role)     │
+               └────────────────────┬────────────────────┘
+                                    │
+               ┌────────────────────▼────────────────────┐
+               │    Domain Service Layer                 │
+               │   • Attendance, Leave, Payroll Services │
+               │   • SEC-13 Self-Action Guards           │
+               │   • Audit Logging Dispatcher            │
+               └────────────────────┬────────────────────┘
+                                    │
+               ┌────────────────────▼────────────────────┐
+               │    Data Persistence (SQLAlchemy 2.0)    │
+               │   • Declarative ORM Models (app/models/)│
+               │   • PostgreSQL / SQLite Dual Support    │
+               │   • Alembic Versioned Migrations        │
+               └─────────────────────────────────────────┘
 ```
-React + TypeScript (Frontend)
-        │
-        ▼
-FastAPI (REST API Layer)
-        │
-        ▼
-PostgreSQL (Database — standalone schema, no ORM)
-```
 
-**No ORM is used in the standalone backend.** The database schema is defined entirely in `database/schema.sql` as raw PostgreSQL DDL. All queries are written against this schema using a raw SQL driver (`psycopg2`).
+### 🎨 UI Design System
 
-Business logic lives in a dedicated **service layer**, not inside route handlers. Routes are thin: parse request → call service → return response.
+The web frontend uses a custom **Organic Windows Green** aesthetic ([`app/static/style.css`](app/static/style.css)):
+- **Palette**: Forest Green (`#14382B`), Hunter Green (`#1E4D3B`), Accent Green (`#2A6B53`), Soft Base (`#E8F2EE`), Alert Crimson (`#8B2020`).
+- **Zero Gradients**: Solid, crisp surfaces for high legibility and instant rendering performance.
+- **Adaptive Layout**: Desktop sidebar navigation with mobile-friendly off-canvas drawer navigation.
 
 ---
 
-## Technology Stack
+## 💻 Technology Stack
 
-| Layer      | Technology                         |
-|------------|------------------------------------|
-| Database   | PostgreSQL 17+ (standalone DDL)    |
-| API        | FastAPI (Python 3.12+)             |
-| DB Driver  | psycopg2                           |
-| Frontend   | React + TypeScript                 |
-| Auth       | JWT (HS256) — custom implementation|
-| Testing    | pytest + psycopg2                  |
-
-> **Note:** The `app/` directory and `alembic/` directory contain a legacy SQLAlchemy-based implementation from an earlier prototype. They are preserved for reference but are **not** part of the current standalone architecture.
+| Layer | Technology | Purpose |
+| :--- | :--- | :--- |
+| **Backend Framework** | **FastAPI** (Python 3.11 / 3.12+) | High-performance ASGI web framework & routing engine |
+| **Web Presentation** | **Jinja2** + **Vanilla CSS/JS** | Lightweight, reactive Server-Side Rendered (SSR) UI |
+| **ORM & Persistence** | **SQLAlchemy 2.0+** | Declarative data modeling, relationships, and queries |
+| **Database Migrations**| **Alembic** | Reliable schema versioning and upgrade/downgrade paths |
+| **Database Engines** | **PostgreSQL 15+** / **SQLite** | Production RDBMS with local zero-setup SQLite fallback |
+| **Authentication** | **python-jose** + **passlib** (bcrypt)| Signed JWT tokens & salted password hashing |
+| **Data Validation** | **Pydantic v2** | Request schema parsing and type validation |
+| **Test Framework** | **Pytest** + **httpx** | 49 comprehensive unit, integration, and QA test cases |
 
 ---
 
-## Project Structure
+## 📊 Database Schema & ERD
 
+The database schema is defined in SQLAlchemy ORM models ([`app/models/`](app/models/)) with corresponding raw PostgreSQL DDL in [`database/schema.sql`](database/schema.sql).
+
+### Entity Relationship Diagram
+
+```mermaid
+erDiagram
+  DEPARTMENT ||--o{ EMPLOYEE : contains
+  USER ||--|| EMPLOYEE : "is"
+  EMPLOYEE ||--o{ ATTENDANCE : logs
+  EMPLOYEE ||--o{ LEAVE_REQUEST : submits
+  LEAVE_TYPE ||--o{ LEAVE_REQUEST : categorizes
+  USER ||--o{ LEAVE_REQUEST : reviews
+  EMPLOYEE ||--o{ SALARY_STRUCTURE : has
+  EMPLOYEE ||--o{ PAYSLIP : receives
+  SALARY_STRUCTURE ||--o{ PAYSLIP : generates
+  USER ||--o{ AUDIT_LOG : performs
+
+  USER {
+    int id PK
+    string employee_code UK
+    string email UK
+    string password_hash
+    string role
+    bool is_verified
+    bool is_active
+  }
+
+  EMPLOYEE {
+    int id PK
+    int user_id FK
+    int department_id FK
+    int manager_id FK
+    string first_name
+    string last_name
+    string phone
+    string address
+    string job_title
+    date joining_date
+  }
+
+  DEPARTMENT {
+    int id PK
+    string name
+    string description
+    int manager_id FK
+  }
+
+  ATTENDANCE {
+    int id PK
+    int employee_id FK
+    date date
+    time check_in
+    time check_out
+    string status
+  }
+
+  LEAVE_TYPE {
+    int id PK
+    string name
+    string description
+    bool is_paid
+  }
+
+  LEAVE_REQUEST {
+    int id PK
+    int employee_id FK
+    int leave_type_id FK
+    int reviewed_by FK
+    date start_date
+    date end_date
+    string remarks
+    string status
+    string review_comment
+    datetime reviewed_at
+    datetime created_at
+  }
+
+  SALARY_STRUCTURE {
+    int id PK
+    int employee_id FK
+    float basic_salary
+    float allowances
+    float deductions
+    date effective_from
+    date effective_to
+  }
+
+  PAYSLIP {
+    int id PK
+    int employee_id FK
+    int salary_structure_id FK
+    int month
+    int year
+    float basic_salary
+    float allowances
+    float deductions
+    float gross_salary
+    float net_salary
+    datetime generated_at
+  }
+
+  AUDIT_LOG {
+    int id PK
+    int user_id FK
+    string action
+    string entity
+    int entity_id
+    datetime timestamp
+  }
 ```
+
+### Table Summary
+
+| Table | Model | Description |
+| :--- | :--- | :--- |
+| `users` | [`User`](app/models/user.py) | Credentials, email, employee code, active status, role (`employee` / `admin_hr`) |
+| `employees` | [`Employee`](app/models/employee.py) | 1:1 employee record, contact details, job title, department, and manager |
+| `departments` | [`Department`](app/models/department.py) | Business units with name, description, and department manager |
+| `attendance` | [`Attendance`](app/models/attendance.py) | Daily check-in/out timestamps, hours worked, and status (`Present`, `Leave`, etc.) |
+| `leave_types` | [`LeaveType`](app/models/leave.py) | Leave policies (Paid, Sick, Unpaid) |
+| `leave_requests` | [`LeaveRequest`](app/models/leave.py) | Employee leave submissions, dates, status (`Pending`, `Approved`, `Rejected`), and comments |
+| `salary_structures` | [`SalaryStructure`](app/models/payroll.py) | Active and historical pay formulas with effective dates |
+| `payslips` | [`Payslip`](app/models/payroll.py) | Immutable point-in-time monthly payroll statements |
+| `audit_logs` | [`AuditLog`](app/models/audit_log.py) | System audit log of privileged operations and state changes |
+
+---
+
+## 👥 Role-Based Access Control & Security
+
+Dayflow HRMS standardizes strictly on a **Two-Role Model**:
+1. **`employee`**: Standard staff access (own profile, attendance clock, personal leave requests, personal payslips).
+2. **`admin_hr`**: Elevated HR Administrator (company-wide employee directory, department setup, leave approvals, salary configuration, payslip generation).
+
+### Permission Matrix
+
+| Operation | Employee | Admin/HR | Security Guard |
+| :--- | :---: | :---: | :--- |
+| View Own Profile / Attendance / Leave / Payslips | ✅ | ✅ | Direct user token identity binding |
+| Clock-In / Clock-Out (Own Record) | ✅ | ✅ | Cannot clock in for another user |
+| Submit / Cancel Own Pending Leave Request | ✅ | ✅ | Locked once approved or rejected |
+| View Company Directory & Other Profiles | ❌ (403) | ✅ | Role-restricted route |
+| Create / Edit Employee Records | ❌ (403) | ✅ | Role-restricted route |
+| Manage Departments & Assignments | ❌ (403) | ✅ | Role-restricted route |
+| Approve / Reject Leave Requests (Peer) | ❌ (403) | ✅ | Role-restricted route |
+| **Approve / Reject Own Leave Request** | ❌ (403) | ❌ (403) | **`SEC-13` Self-Action Guard Blocked** |
+| Configure Salary Structure (Peer) | ❌ (403) | ✅ | Role-restricted route |
+| **Configure Own Salary Structure** | ❌ (403) | ❌ (403) | **`SEC-13` Self-Action Guard Blocked** |
+| Generate Payslips (Peer) | ❌ (403) | ✅ | Role-restricted route |
+| **Generate Own Payslip** | ❌ (403) | ❌ (403) | **`SEC-13` Self-Action Guard Blocked** |
+
+---
+
+## 📁 Project Directory Structure
+
+```text
 Oodoo_Human_Resource_Management/
-├── database/
-│   └── schema.sql              # Standalone PostgreSQL DDL — source of truth
-├── docs/
-│   ├── architecture.md         # Architecture decisions
-│   ├── database-design.md      # ERD and table design rationale
-│   ├── permission-matrix.md    # Role-based access control matrix
-│   └── workflows.md            # Workflow test case specifications
-├── tests/
-│   ├── test_database.py        # SQLAlchemy ORM layer tests (legacy prototype)
-│   ├── test_schema_sql.py      # Static schema.sql structure validation
-│   └── test_postgres_integration.py  # Live PostgreSQL constraint & trigger tests
-├── dayflow_hrms/               # Odoo module (separate, not the standalone backend)
-├── app/                        # Legacy FastAPI + SQLAlchemy prototype (preserved)
-├── alembic/                    # Legacy Alembic migrations (preserved)
-├── pytest.ini                  # pytest configuration
-├── requirements.txt            # Python dependencies
-└── README.md                   # This file
+├── main.py                     # Application entrypoint & startup data seeder
+├── requirements.txt            # Python package dependencies
+├── .env.example                # Environment variable configuration template
+├── .gitignore                  # Git tracking rules
+├── pytest.ini                  # Pytest configuration
+├── Makefile                    # Automation commands (Linux / macOS)
+├── alembic.ini                 # Alembic configuration
+│
+├── alembic/                    # Database migration environment
+│   └── versions/               # Versioned migration revision scripts
+│
+├── app/                        # Main Application Package
+│   ├── api/                    # REST API Endpoints (JSON)
+│   │   ├── auth.py             # Login, registration, token refresh (/api/auth)
+│   │   ├── employees.py        # Employee management (/api/employees)
+│   │   ├── departments.py      # Department operations (/api/departments)
+│   │   ├── attendance.py       # Attendance tracking (/api/attendance)
+│   │   ├── leave.py            # Leave request workflows (/api/leave)
+│   │   └── payroll.py          # Salary structures & payslips (/api/payroll)
+│   │
+│   ├── core/                   # Core Configuration & Security
+│   │   ├── database.py         # SQLAlchemy engine & session factory
+│   │   ├── security.py         # Passlib hashing & JWT encoding/decoding
+│   │   └── deps.py             # FastAPI dependency injection & RBAC guards
+│   │
+│   ├── models/                 # SQLAlchemy 2.0 Declarative Models
+│   │   ├── user.py             # User authentication model
+│   │   ├── employee.py         # Employee profile model
+│   │   ├── department.py       # Department model
+│   │   ├── attendance.py       # Shift attendance log model
+│   │   ├── leave.py            # Leave type & request models
+│   │   ├── payroll.py          # Salary structure & payslip models
+│   │   └── audit_log.py        # System audit log model
+│   │
+│   ├── schemas/                # Pydantic Request & Response Schemas
+│   │   └── __init__.py         # Type validation & serializers
+│   │
+│   ├── services/               # Business Logic & Guard Layer
+│   │   ├── auth_service.py     # Authentication logic
+│   │   ├── employee_service.py # Directory operations
+│   │   ├── attendance_service.py # Shift & duration calculations
+│   │   ├── leave_service.py    # Overlap validation & attendance sync
+│   │   ├── payroll_service.py  # Compensation & payslip snapshotting
+│   │   ├── audit_service.py    # System event recorder
+│   │   └── guards.py           # SEC-13 Self-action peer guard
+│   │
+│   ├── static/                 # Static Assets
+│   │   └── style.css           # Organic Windows Green design system
+│   │
+│   ├── templates/              # Jinja2 HTML Server-Rendered Views
+│   │   ├── base.html           # Core layout, header, & responsive sidebar
+│   │   ├── login.html          # Authentication login page
+│   │   ├── dashboard.html      # Employee dashboard & shift clock
+│   │   ├── admin_dashboard.html# HR Admin operations hub
+│   │   ├── employees.html      # Employee directory & creation modal
+│   │   ├── departments.html    # Department list & manager manager
+│   │   ├── attendance.html     # Attendance grid & history table
+│   │   ├── leave.html          # Leave request portal & status list
+│   │   ├── leave_approvals.html# HR leave approval queue
+│   │   ├── payroll.html        # Employee payslip statement view
+│   │   ├── admin_payroll.html  # HR salary structuring & bulk generation
+│   │   └── profile.html        # Personal profile editor
+│   │
+│   └── web/                    # Web UI Route Handlers
+│       └── views.py            # SSR template view renderers
+│
+├── database/                   # Standalone Database DDL
+│   └── schema.sql              # Raw PostgreSQL schema definition
+│
+├── docs/                       # Technical Documentation Hub
+│   ├── README.md               # Documentation guide index
+│   ├── architecture.md         # Detailed architectural design
+│   ├── database-design.md      # Data model & schema decisions
+│   ├── er-diagram.md           # Mermaid ER diagram specification
+│   ├── permission-matrix.md    # RBAC security & endpoint access rules
+│   ├── workflows.md            # Business rule inventory (LEAVE, ATT, SEC)
+│   ├── edge_case_decisions.md  # 17 explicit boundary & edge-case decisions
+│   └── testing_guide.md        # QA test suite breakdown
+│
+├── scripts/                    # Command-Line Management Utilities
+│   ├── seed_db.py              # Seeds basic admin & employee accounts
+│   ├── populate_sample_data.py # Populates multi-department demo database
+│   ├── create_admin.py         # CLI utility to create an HR Admin
+│   ├── create_user.py          # CLI utility to create standard employees
+│   └── reset_db.py             # Complete database wipe & re-seed
+│
+└── tests/                      # Automated Test Suite (49 Tests)
+    ├── test_database.py        # ORM model CRUD & relationship tests
+    ├── test_schema_sql.py      # Schema DDL structure tests
+    ├── test_logic_layer.py     # Service layer business logic & RBAC tests
+    ├── test_adversarial_qa.py  # Adversarial validation against business rules
+    ├── test_edge_cases.py      # Boundary handling & edge-case tests
+    └── test_postgres_integration.py # Live PostgreSQL constraint tests
 ```
 
 ---
 
-## Database Schema
-
-The canonical database schema lives at [`database/schema.sql`](database/schema.sql).
-
-### Tables
-
-| Table               | Purpose                                                              |
-|---------------------|----------------------------------------------------------------------|
-| `users`             | Authentication — email, password hash, role (`Employee` / `HR`)     |
-| `departments`       | Department list; supports circular manager reference to `employees`  |
-| `employees`         | Core HR profile; 1:1 with `users`                                   |
-| `attendance`        | Daily check-in / check-out records per employee                      |
-| `leave_types`       | Leave category lookup: Paid, Sick, Unpaid, etc.                     |
-| `leave_requests`    | Employee leave applications with HR review trail                     |
-| `salary_structures` | Time-bound salary components per employee                            |
-| `payslips`          | Immutable monthly salary snapshots                                   |
-| `employee_documents`| Employee document storage paths (no binary blobs)                   |
-| `audit_logs`        | System audit trail with `JSONB` detail payload                       |
-
-### Schema Highlights
-
-- **Identity PKs** — All tables use `GENERATED ALWAYS AS IDENTITY PRIMARY KEY` (PostgreSQL native).
-- **Timestamps** — All mutable tables carry `created_at TIMESTAMPTZ` and `updated_at TIMESTAMPTZ`, with automatic trigger-based refresh on update.
-- **Monetary values** — All salary/payslip amounts use `NUMERIC(12,2)` to avoid floating-point rounding errors.
-- **Partial unique index** — `salary_structures` enforces at most one active structure per employee (`WHERE effective_to IS NULL`).
-- **Circular FK** — `departments.manager_id → employees.id` is added via `ALTER TABLE` after `employees` is created, resolving the circular dependency cleanly.
-- **`ON DELETE RESTRICT`** — Applied on all historical/financial tables to protect audit integrity.
-
----
-
-## Role & Permission Model
-
-Two roles exist: `Employee` and `HR`.
-
-| Resource            | Employee                     | HR                        |
-|---------------------|------------------------------|---------------------------|
-| Own employee profile| Read + edit limited fields   | Full CRUD                 |
-| Other profiles      | ❌ Blocked                   | Read + edit               |
-| Own attendance      | Check-in / check-out         | Full management           |
-| Other attendance    | ❌ Blocked                   | Full management           |
-| Own leave requests  | Submit, edit (pending only)  | Full management           |
-| Leave approval      | ❌ Blocked                   | Approve / Reject          |
-| Own salary structure| Read-only                    | Full management           |
-| Own payslips        | Read-only                    | Generate + read           |
-| Departments         | Read-only                    | Full CRUD                 |
-| Audit logs          | ❌ No access                 | Read-only                 |
-
-> **Critical principle:** All permission checks are enforced in the **service layer** via JWT decoding and ownership comparison — never in the frontend alone and never by trusting an `employee_id` from the request payload.
-
----
-
-## Key Business Rules
-
-### Attendance
-- One record per employee per calendar day (`UNIQUE(employee_id, attendance_date)`).
-- `check_out` must be strictly after `check_in` (database-level `CHECK` constraint).
-- Attendance status (`Present`, `Absent`, `Half-day`, `Leave`) is derived by the service layer, not stored as a redundant field.
-
-### Leave Requests
-- `start_date` must be ≤ `end_date` (database-level `CHECK` constraint).
-- Leave status values are constrained to `Pending`, `Approved`, `Rejected`.
-- On approval, the service layer synchronises the leave date range into `attendance` records.
-- Employees may edit only their own **pending** leave requests; approved requests are immutable to employees.
-
-### Salary Structures
-- At most one **active** salary structure per employee (partial unique index on `effective_to IS NULL`).
-- Creating a new structure should close the previous one by setting `effective_to`.
-- All monetary amounts must be non-negative (database-level `CHECK` constraints).
-
-### Payslips
-- `UNIQUE(employee_id, month, year)` — one payslip per pay period.
-- Payslips are **immutable snapshots** — salary field values are copied at generation time and never updated, even if the underlying salary structure changes.
-
----
-
-## Getting Started
+## 🚀 Getting Started & Installation
 
 ### Prerequisites
+- **Python**: Version `3.11` or `3.12+`
+- **PostgreSQL** *(Optional)*: Version 15+ (If omitted, the system seamlessly defaults to SQLite `dayflow.db`)
 
-- Python 3.12+
-- PostgreSQL 17+
+### 1. Clone the Repository
+```bash
+git clone https://github.com/sarvesh0710-n/Oodoo_Human_Resource_Management.git
+cd Oodoo_Human_Resource_Management
+```
 
-### Install dependencies
+### 2. Create and Activate a Virtual Environment
 
+**On Linux / macOS:**
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
+```
+
+**On Windows (PowerShell):**
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+### 3. Install Dependencies
+```bash
+pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-### Initialise the database
-
-Create a PostgreSQL database and run the schema:
+### 4. Configure Environment Variables
+Copy `.env.example` to `.env`:
 
 ```bash
-createdb dayflow_hrms
-psql -d dayflow_hrms -f database/schema.sql
+# On Linux / macOS
+cp .env.example .env
+
+# On Windows PowerShell
+Copy-Item .env.example .env
+```
+
+Edit `.env` to configure your settings:
+```ini
+DATABASE_URL=sqlite:///dayflow.db
+# Or for PostgreSQL:
+# DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dayflow_hrms
+
+SECRET_KEY=generate_a_secure_random_string_for_production
+DAYFLOW_ENV=dev
+```
+
+### 5. Initialize the Database
+Run migrations or populate sample data:
+```bash
+# Option A: Run Alembic migrations
+alembic upgrade head
+
+# Option B: Populate rich demo data (Multiple departments, employees, shifts, leaves)
+python -m scripts.populate_sample_data
 ```
 
 ---
 
-## Running the Product using `make`
+## 🖥️ Running the Application
 
-The project includes a `Makefile` to quickly set up, manage, and run Dayflow HRMS.
+### Using `uvicorn` (Cross-Platform)
 
-### 1. Setup Virtual Environment & Dependencies
 ```bash
-make venv
+# Start server on default port 8000
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### 2. Start the Product (Web Frontend & API)
-To start the application on the default port (`8000`):
+### Using `make` (Linux / macOS)
+
 ```bash
+# Start server on port 8000
 make run
-```
 
-To run on a custom port (for instance `8001` if port 8000 is occupied):
-```bash
+# Start server on custom port (e.g. 8001)
 make run-port PORT=8001
 ```
 
-Once running, open your browser at:
-- **Login Page**: `http://localhost:8001/login` (or `http://localhost:8000/login`)
+### 🌐 Accessing the Application
 
-#### Demo Credentials:
-- **Admin HR**: `hr@company.com` / `admin123`
-- **Employee**: `employee@company.com` / `emp123`
+Open your browser and navigate to:
+- **Web UI Portal**: [http://localhost:8000/login](http://localhost:8000/login)
+- **Interactive Swagger API Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
+- **Alternative ReDoc API Docs**: [http://localhost:8000/redoc](http://localhost:8000/redoc)
 
-### 3. Other Useful `make` Commands
-| Command | Description |
-|---|---|
-| `make help` | Displays list of all available Makefile commands |
-| `make test` | Executes the test suite |
-| `make db-upgrade` | Applies pending database migrations |
-| `make clean` | Cleans temporary cache and build files |
+### 🔑 Demo Credentials
+
+| Role | Email | Password | Access Level |
+| :--- | :--- | :--- | :--- |
+| **HR Administrator** | `hr@company.com` | `admin123` | Full HR Admin access across all modules |
+| **Standard Employee**| `employee@company.com` | `emp123` | Personal profile, attendance, leave, payslips |
 
 ---
 
-## Running Tests
+## 🛠️ CLI Database Management Scripts
+
+The `scripts/` directory provides CLI tools for database administration:
 
 ```bash
-# All standalone tests (no Odoo required)
-pytest -v
+# Seed initial demo admin & employee
+python -m scripts.seed_db
 
-# PostgreSQL integration tests only
-pytest -v tests/test_postgres_integration.py
+# Populate full mock company dataset (5+ employees, attendance logs, leave history)
+python -m scripts.populate_sample_data
+
+# Create or promote an HR Admin
+python -m scripts.create_admin --email admin@example.com --password YourSecurePassword
+
+# Create a standard employee account
+python -m scripts.create_user --email staff@example.com --password UserPassword --role employee
+
+# Complete database reset & fresh re-seed
+python -m scripts.reset_db
 ```
 
-### Test Suites
+---
 
-| File                            | Type                  | Tests | Description                                              |
-|---------------------------------|-----------------------|-------|----------------------------------------------------------|
-| `test_schema_sql.py`            | Static analysis       | 6     | Validates schema.sql structure and constraint presence   |
-| `test_postgres_integration.py`  | Live PostgreSQL tests  | 14    | Executes schema against real PG; verifies all constraints |
-| `test_database.py`              | Legacy ORM tests      | 2     | SQLAlchemy model tests (legacy prototype; preserved)     |
+## 📖 API Documentation
 
-The integration tests automatically spin up an ephemeral PostgreSQL instance if no server is available on the standard socket. Each test runs against a clean schema (dropped and recreated per test).
+FastAPI automatically generates interactive OpenAPI documentation:
+
+- **Swagger UI**: [`http://localhost:8000/docs`](http://localhost:8000/docs)
+- **ReDoc**: [`http://localhost:8000/redoc`](http://localhost:8000/redoc)
+
+### Key REST Endpoints Overview
+
+| Area | Method | Endpoint | Description | Auth Required |
+| :--- | :--- | :--- | :--- | :---: |
+| **Auth** | `POST` | `/api/auth/token` | Obtain JWT access token | No |
+| | `POST` | `/api/auth/logout` | Clear session cookie | Yes |
+| | `GET` | `/api/auth/me` | Fetch authenticated user details | Yes |
+| **Employees**| `GET` | `/api/employees/` | List all employees | `admin_hr` |
+| | `POST` | `/api/employees/` | Create new employee profile | `admin_hr` |
+| | `GET` | `/api/employees/{id}` | Get employee profile details | Owner / `admin_hr` |
+| | `PATCH`| `/api/employees/{id}` | Update employee profile fields | Owner / `admin_hr` |
+| **Attendance**| `POST` | `/api/attendance/check-in` | Clock in for today's shift | Yes |
+| | `POST` | `/api/attendance/check-out` | Clock out for today's shift | Yes |
+| | `GET` | `/api/attendance/` | Query attendance logs (filtered) | Owner / `admin_hr` |
+| **Leave** | `POST` | `/api/leave/` | Submit leave request | Yes |
+| | `GET` | `/api/leave/` | List leave requests | Owner / `admin_hr` |
+| | `PATCH`| `/api/leave/{id}/review` | Approve or reject leave request | `admin_hr` (Non-self) |
+| **Payroll** | `POST` | `/api/payroll/salary-structure` | Create/update salary structure | `admin_hr` (Non-self) |
+| | `POST` | `/api/payroll/generate-payslip` | Generate monthly payslip snapshot | `admin_hr` (Non-self) |
+| | `GET` | `/api/payroll/payslips` | List historical payslips | Owner / `admin_hr` |
+| **Departments**| `GET` | `/api/departments/` | List departments | Yes |
+| | `POST` | `/api/departments/` | Create new department | `admin_hr` |
 
 ---
 
-## Environment Variables
+## 🧪 Testing & Quality Assurance
 
-| Variable        | Default                                          | Description                        |
-|-----------------|--------------------------------------------------|------------------------------------|
-| `DATABASE_URL`  | `postgresql://postgres:postgres@localhost/dayflow_hrms` | PostgreSQL connection string  |
-| `TEST_DATABASE_URL` | _(falls back to `DATABASE_URL`)_           | Override for test database         |
+The codebase includes an extensive Pytest automated test suite covering database models, service layers, boundary conditions, and adversarial scenarios.
+
+```bash
+# Run the complete test suite
+pytest -v
+
+# Run specific test suites
+pytest -v tests/test_logic_layer.py
+pytest -v tests/test_adversarial_qa.py
+pytest -v tests/test_edge_cases.py
+```
+
+### Test Suite Breakdown (`49 Automated Tests`)
+
+| Test File | Focus | Test Count | Description |
+| :--- | :--- | :---: | :--- |
+| [`tests/test_database.py`](tests/test_database.py) | Persistence & Models | 2 | Table creation, relationships, cascading & CRUD operations |
+| [`tests/test_schema_sql.py`](tests/test_schema_sql.py) | Schema Verification | 6 | Raw SQL DDL structure, primary keys, foreign keys, & indexes |
+| [`tests/test_logic_layer.py`](tests/test_logic_layer.py) | Domain Business Logic | 10 | Auth, RBAC enforcement, SEC-13 guards, overlap checks, sync |
+| [`tests/test_adversarial_qa.py`](tests/test_adversarial_qa.py) | Business Rule Integrity | 14 | Adversarial testing against rules `LEAVE-01..09`, `ATT-01..08`, `SEC-01..13` |
+| [`tests/test_edge_cases.py`](tests/test_edge_cases.py) | Boundary & Edge Cases | 17 | Zero duration shifts, leap years, negative net pay, token expiry |
+
+For full QA specifications, see the [Testing & QA Guide](docs/testing_guide.md).
 
 ---
 
-## Development Notes
+## 📚 Documentation Hub
 
-- **`dayflow_hrms/`** — The Odoo custom module is preserved in this repository. It implements the same HRMS domain using the Odoo ORM and is independent of the standalone backend. It requires an Odoo server to run its tests (`dayflow_hrms/tests/` are Odoo-only and excluded from standalone pytest via `pytest.ini`).
-- **`app/`** and **`alembic/`** — Legacy SQLAlchemy/Alembic prototype files. Preserved for reference; not part of the current implementation path.
-- **No Docker** — The standalone PostgreSQL schema is the only infrastructure dependency. A local PostgreSQL server is sufficient for development and testing.
+Explore the in-depth documentation in the [`docs/`](docs/) directory:
+
+- 🏛️ [**Architecture Guide**](docs/architecture.md) — Multi-tier design, layer decoupling, security architecture, and styling rules.
+- 🗄️ [**Database Design**](docs/database-design.md) — Schema definitions, indexes, design rationales, and constraints.
+- 📊 [**Entity Relationship Diagram**](docs/er-diagram.md) — Visual Mermaid ERD and relational model mapping.
+- 🔐 [**Permission & RBAC Matrix**](docs/permission-matrix.md) — Resource access rules and identity-trust guarantees.
+- ⚙️ [**Workflows & Business Rules**](docs/workflows.md) — Leave lifecycle, attendance auto-sync, and payroll calculations.
+- 🎯 [**Edge Case & Boundary Decisions**](docs/edge_case_decisions.md) — 17 documented edge-case solutions and rationale.
+- 🧪 [**Testing & QA Guide**](docs/testing_guide.md) — Test architecture, fixtures, and verification inventory.
+
+---
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).

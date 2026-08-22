@@ -60,7 +60,7 @@ Dayflow HRMS is built using a strict **Layered Architecture Pattern** to separat
 
 ## 🎨 UI Design System Architecture
 
-The frontend styling in [`app/static/style.css`](file:///home/zagot/Oodoo_Human_Resource_Management/app/static/style.css) follows an **Organic Windows Green** aesthetic:
+The frontend styling in [`app/static/style.css`](../app/static/style.css) follows an **Organic Windows Green** aesthetic:
 
 - **Color System**:
   - Primary Dark Green: `#14382B`

@@ -8,12 +8,12 @@ Welcome to the official documentation for **Dayflow HRMS** — a modern, human-c
 
 | Module | Description | File Link |
 | :--- | :--- | :--- |
-| **System Architecture** | Technical stack, layer separation, FastAPI routers, JWT authentication, and dependency injection pattern. | [`architecture.md`](file:///home/zagot/Oodoo_Human_Resource_Management/docs/architecture.md) |
-| **Database Design** | Entity-Relationship (ER) design, schema definitions for all 9 tables, indexes, and PostgreSQL/SQLite dual engine setup. | [`database-design.md`](file:///home/zagot/Oodoo_Human_Resource_Management/docs/database-design.md) |
-| **Permission & RBAC Matrix** | Two-role access control (`employee` vs `admin_hr`), identity-trust rules, and `SEC-13` self-action peer approval guard. | [`permission-matrix.md`](file:///home/zagot/Oodoo_Human_Resource_Management/docs/permission-matrix.md) |
-| **Workflows & Business Rules** | Rule inventory (`LEAVE-01..09`, `ATT-01..08`, `SEC-01..13`), leave approval state machine, attendance auto-sync, and payroll calculation. | [`workflows.md`](file:///home/zagot/Oodoo_Human_Resource_Management/docs/workflows.md) |
-| **Edge Case & Boundary Decisions** | Comprehensive record of 17 explicit design decisions, boundary handling, and security guarantees. | [`edge_case_decisions.md`](file:///home/zagot/Oodoo_Human_Resource_Management/docs/edge_case_decisions.md) |
-| **Testing & QA Guide** | Pytest test suite architecture, fixture reference, 49 automated test cases, and verification commands. | [`testing_guide.md`](file:///home/zagot/Oodoo_Human_Resource_Management/docs/testing_guide.md) |
+| **System Architecture** | Technical stack, layer separation, FastAPI routers, JWT authentication, and dependency injection pattern. | [`architecture.md`](./architecture.md) |
+| **Database Design** | Entity-Relationship (ER) design, schema definitions for all 9 tables, indexes, and PostgreSQL/SQLite dual engine setup. | [`database-design.md`](./database-design.md) |
+| **Permission & RBAC Matrix** | Two-role access control (`employee` vs `admin_hr`), identity-trust rules, and `SEC-13` self-action peer approval guard. | [`permission-matrix.md`](./permission-matrix.md) |
+| **Workflows & Business Rules** | Rule inventory (`LEAVE-01..09`, `ATT-01..08`, `SEC-01..13`), leave approval state machine, attendance auto-sync, and payroll calculation. | [`workflows.md`](./workflows.md) |
+| **Edge Case & Boundary Decisions** | Comprehensive record of 17 explicit design decisions, boundary handling, and security guarantees. | [`edge_case_decisions.md`](./edge_case_decisions.md) |
+| **Testing & QA Guide** | Pytest test suite architecture, fixture reference, 49 automated test cases, and verification commands. | [`testing_guide.md`](./testing_guide.md) |
 
 ---
 
