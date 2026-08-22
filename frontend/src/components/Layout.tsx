@@ -2,7 +2,7 @@ import React from 'react';
 import { Outlet, useOutletContext } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Navbar } from './Navbar';
-import { User } from '../lib/types';
+import type { User } from '../lib/types';
 
 export const Layout: React.FC = () => {
   // We get the user from the ProtectedRoute context

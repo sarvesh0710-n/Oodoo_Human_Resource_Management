@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { User } from '../lib/types';
+import type { User } from '../lib/types';
 import { LayoutDashboard, Calendar, Clock, FileText, User as UserIcon, Users, Building, FileCheck, CircleDollarSign, ShieldCheck } from 'lucide-react';
 
 interface SidebarProps {

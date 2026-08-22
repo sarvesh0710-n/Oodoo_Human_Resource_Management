@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Attendance as AttendanceType } from '../lib/types';
+import type { Attendance as AttendanceType } from '../lib/types';
 import api from '../lib/api';
 import { StatusBadge } from '../components/StatusBadge';
 

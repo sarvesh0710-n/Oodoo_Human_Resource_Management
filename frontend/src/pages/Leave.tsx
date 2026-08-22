@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { LeaveRequest, LeaveType } from '../lib/types';
+import type { LeaveRequest, LeaveType } from '../lib/types';
 import api from '../lib/api';
 import { StatusBadge } from '../components/StatusBadge';
 import { Modal } from '../components/Modal';

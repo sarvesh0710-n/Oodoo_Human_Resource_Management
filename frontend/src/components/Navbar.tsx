@@ -1,5 +1,5 @@
 import React from 'react';
-import { User } from '../lib/types';
+import type { User } from '../lib/types';
 import { logout } from '../lib/auth';
 import { LogOut } from 'lucide-react';
 

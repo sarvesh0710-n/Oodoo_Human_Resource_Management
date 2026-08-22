@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Department } from '../lib/types';
+import type { Department } from '../lib/types';
 import api from '../lib/api';
 import { Modal } from '../components/Modal';
 import { Building2 } from 'lucide-react';

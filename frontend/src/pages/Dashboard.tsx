@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
-import { User, Attendance, LeaveRequest } from '../lib/types';
+import type { User, Attendance, LeaveRequest } from '../lib/types';
 import api from '../lib/api';
 import { StatCard } from '../components/StatCard';
 import { StatusBadge } from '../components/StatusBadge';
@@ -58,7 +58,7 @@ export const Dashboard: React.FC = () => {
   const isCompleted = todayRecord && todayRecord.check_out;
 
   const presentCount = attendance.filter(a => a.status === 'present').length;
-  const leaveCount = leaves.filter(l => l.status === 'Approved').length;
+  const leaveCount = leaves.filter(l => l.status === 'approved').length;
 
   return (
     <div className="animate-fade-in max-w-6xl mx-auto space-y-6">

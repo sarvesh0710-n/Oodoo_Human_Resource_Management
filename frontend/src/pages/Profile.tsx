@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { getMyProfile } from '../lib/auth';
-import { Employee } from '../lib/types';
+import type { Employee } from '../lib/types';
 import api from '../lib/api';
 import { User, Phone, MapPin, Briefcase, Calendar } from 'lucide-react';
 

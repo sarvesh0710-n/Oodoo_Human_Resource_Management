@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Employee, Department } from '../lib/types';
+import type { Employee, Department } from '../lib/types';
 import api from '../lib/api';
 import { Modal } from '../components/Modal';
 import { UserPlus } from 'lucide-react';

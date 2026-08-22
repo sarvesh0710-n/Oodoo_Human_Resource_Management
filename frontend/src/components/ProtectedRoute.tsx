@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { getMe, isAuthenticated } from '../lib/auth';
-import { User } from '../lib/types';
+import type { User } from '../lib/types';
 
 interface ProtectedRouteProps {
   allowedRoles?: string[];
@@ -19,7 +19,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) 
     }
     
     getMe()
-      .then(userData => {
+      .then((userData: User) => {
         setUser(userData);
         setLoading(false);
       })

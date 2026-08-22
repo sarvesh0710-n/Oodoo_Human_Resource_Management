@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Payslip } from '../lib/types';
+import type { Payslip } from '../lib/types';
 import api from '../lib/api';
 import { FileText, Download } from 'lucide-react';
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Employee, Department, LeaveRequest } from '../lib/types';
+import type { Employee, Department, LeaveRequest } from '../lib/types';
 import api from '../lib/api';
 import { StatCard } from '../components/StatCard';
 import { Users, FileCheck, Percent, Building, ClipboardList, Wallet } from 'lucide-react';
