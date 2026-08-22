@@ -6,7 +6,7 @@
 [![Alembic](https://img.shields.io/badge/Alembic-Migrations-red.svg)](https://alembic.sqlalchemy.org/)
 [![Database](https://img.shields.io/badge/Database-PostgreSQL%20%7C%20SQLite-336791.svg?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Auth](https://img.shields.io/badge/Auth-JWT%20%2B%20HttpOnly%20Cookies-000000.svg?logo=jsonwebtokens&logoColor=white)](https://jwt.io/)
-[![Design](https://img.shields.io/badge/Design-Organic%20Curved%20Green-1E4D3B.svg)](#-ui-design-system)
+[![Design](https://img.shields.io/badge/Design-Organic%20Curved%20Green-1E4D3B.svg)](#ui-design-system)
 [![Tests](https://img.shields.io/badge/Tests-50%20Passing-brightgreen.svg?logo=pytest&logoColor=white)](./docs/testing_guide.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -16,70 +16,70 @@ The system is architected with a strict separation of concerns, offering both **
 
 ---
 
-## 📑 Table of Contents
+## Table of Contents
 
-- [Key Features](#-key-features)
-- [System Architecture](#-system-architecture)
-- [Technology Stack](#-technology-stack)
-- [Database Schema & ERD](#-database-schema--erd)
-- [Role-Based Access Control & Security](#-role-based-access-control--security)
-- [Project Directory Structure](#-project-directory-structure)
-- [Getting Started & Installation](#-getting-started--installation)
-- [Running the Application](#-running-the-application)
-- [Pre-Seeded Demo Login Credentials](#-pre-seeded-demo-login-credentials)
-- [CLI Database Management Scripts](#-cli-database-management-scripts)
-- [API Documentation](#-api-documentation)
-- [Testing & Quality Assurance](#-testing--quality-assurance)
-- [Documentation Hub](#-documentation-hub)
-- [License](#-license)
+- [Key Features](#key-features)
+- [System Architecture](#system-architecture)
+- [Technology Stack](#technology-stack)
+- [Database Schema & ERD](#database-schema--erd)
+- [Role-Based Access Control & Security](#role-based-access-control--security)
+- [Project Directory Structure](#project-directory-structure)
+- [Getting Started & Installation](#getting-started--installation)
+- [Running the Application](#running-the-application)
+- [Pre-Seeded Demo Login Credentials](#pre-seeded-demo-login-credentials)
+- [CLI Database Management Scripts](#cli-database-management-scripts)
+- [API Documentation](#api-documentation)
+- [Testing & Quality Assurance](#testing--quality-assurance)
+- [Documentation Hub](#documentation-hub)
+- [License](#license)
 
 ---
 
-## 🌟 Key Features
+## Key Features
 
-### 1. 🔐 Enterprise Authentication & Session Security
+### 1. Enterprise Authentication & Session Security
 - **OAuth2 JWT Token Authentication**: Encrypted `HS256` tokens stored in tamper-proof, secure `HttpOnly` cookies.
 - **Fail-Fast Security Setup**: Enforces explicit `SECRET_KEY` configuration on startup from environment variables (`.env`).
 - **CSRF & XSS Protection**: Strict cookie flags (`SameSite=Lax`), context-aware HTML escaping (`escapeHtml`), and request verification headers.
 - **Password Security**: Salted `bcrypt` hashing with `passlib`.
 
-### 2. 👤 Employee Directory & Department Showcase
+### 2. Employee Directory & Department Showcase
 - **Complete Employee Profiles**: First/last name, job title, contact information, department name showcase (e.g. *Engineering*, *Product & UX*), joining date, and avatar.
 - **1:1 Auth Isolation**: Separation between authentication identity (`User`) and organizational profile (`Employee`).
 - **Onboarding Modal**: Admin HR can onboard new employees directly via the directory interface.
 
-### 3. ⏱️ Attendance & Shift Tracking
+### 3. Attendance & Shift Tracking
 - **One-Click Clock-In / Clock-Out**: Streamlined daily shift tracking with timestamp validation (`check_out > check_in`).
 - **Leave Guard**: Rejects check-in/check-out attempts if an employee is on approved leave today (`"Cannot check in: You are on approved leave today"`).
 - **Zero-Duration Rejection**: Prevents duplicate or instantaneous check-out anomalies.
 - **Monthly Attendance Calendar Grid**: Visual monthly view and downloadable/printable log history.
 
-### 4. 📅 Time-Off & Leave Management
+### 4. Time-Off & Leave Management
 - **Leave Types & Allowances**: Pre-configured categories (Paid Time Off, Medical/Sick Leave, Unpaid Leave).
 - **Date Range Overlap Prevention**: Strict server-side validation against overlapping leave windows (`start_date <= existing.end_date AND end_date >= existing.start_date`).
 - **HR Review Workflow**: Review queue for HR Administrators with approval/rejection comments and audit timestamps.
 - **Atomic Attendance Synchronization**: Approving a leave request automatically creates or updates the employee's attendance records to `status='Leave'` across the requested date range.
 
-### 5. 📊 Department Leave Analytics Chart
+### 5. Department Leave Analytics Chart
 - **Interactive Chart.js Doughnut Chart**: Displays real-time department-wise leave application totals on the HR Overview Dashboard (`GET /api/leave/analytics/department-summary`).
 
-### 6. 💰 Payroll & Compensation Engine
+### 6. Payroll & Compensation Engine
 - **Salary Structures**: Time-bound compensation packages with `basic_salary`, `allowances`, `deductions`, `effective_from`, and `effective_to`.
 - **Automatic Versioning**: Creating a new salary structure automatically closes out previous active structures.
 - **Immutable Monthly Payslips**: Generates permanent point-in-time financial snapshots (`gross_salary`, `net_salary`) unaffected by future pay adjustments.
 - **Financial Bounds**: Enforces positive values, non-negative net earnings, and an upper limit ceiling (`$10,000,000.00`).
 
-### 7. 🏢 Department Management & Real-Time Edits
+### 7. Department Management & Real-Time Edits
 - Normalized departments with descriptions and assigned department heads.
 - Live modal editing support via `PATCH /api/departments/{id}`.
 
-### 8. 🛡️ System Audit Trail & Self-Action Guards (`SEC-13`)
+### 8. System Audit Trail & Self-Action Guards (SEC-13)
 - **`SEC-13` Peer-Approval Guard**: Safeguards (`assert_not_self_action`) preventing HR Administrators from approving their own leaves, setting their own salary structures, or generating their own payslips.
 - **Audit Logging**: Captures sensitive mutations in `audit_logs` table with user identification, action type, target entity, and timestamp.
 
 ---
 
-## 🎨 UI Design System
+## UI Design System
 
 The web frontend uses a modern **Organic Curved Green** aesthetic ([`app/static/style.css`](app/static/style.css)):
 - **Curved Radius System**: Deep smooth curved borders (`border-radius: 24px` for cards, `18px` for inputs/selects, `28px` for modals).
@@ -89,7 +89,7 @@ The web frontend uses a modern **Organic Curved Green** aesthetic ([`app/static/
 
 ---
 
-## 💻 Technology Stack
+## Technology Stack
 
 | Layer | Technology | Purpose |
 | :--- | :--- | :--- |
@@ -105,7 +105,7 @@ The web frontend uses a modern **Organic Curved Green** aesthetic ([`app/static/
 
 ---
 
-## 🔑 Pre-Seeded Demo Login Credentials
+## Pre-Seeded Demo Login Credentials
 
 You can log in using either the **Work Email** or the **Employee Code** on the `/login` page:
 
@@ -126,7 +126,7 @@ You can log in using either the **Work Email** or the **Employee Code** on the `
 
 ---
 
-## 🛠️ CLI Database Management Commands
+## CLI Database Management Commands
 
 The project includes Makefile shortcuts and CLI scripts in [`scripts/`](scripts/):
 
@@ -149,7 +149,7 @@ make reset-db           # or python -m scripts.reset_db
 
 ---
 
-## 🖥️ Running the Application
+## Running the Application
 
 ### Using `make` (Linux / macOS)
 
@@ -172,7 +172,7 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
 ---
 
-## 🧪 Testing & Quality Assurance
+## Testing & Quality Assurance
 
 The codebase includes an extensive Pytest automated test suite covering database models, service layers, boundary conditions, and adversarial scenarios.
 
@@ -193,20 +193,20 @@ pytest -v
 
 ---
 
-## 📚 Documentation Hub
+## Documentation Hub
 
 Explore the in-depth documentation in the [`docs/`](docs/) directory:
 
-- 🏛️ [**Architecture Guide**](docs/architecture.md) — Multi-tier design, layer decoupling, security architecture, and styling rules.
-- 🗄️ [**Database Design**](docs/database-design.md) — Schema definitions, indexes, design rationales, and constraints.
-- 📊 [**Entity Relationship Diagram**](docs/er-diagram.md) — Visual Mermaid ERD and relational model mapping.
-- 🔐 [**Permission & RBAC Matrix**](docs/permission-matrix.md) — Resource access rules and identity-trust guarantees.
-- ⚙️ [**Workflows & Business Rules**](docs/workflows.md) — Leave lifecycle, attendance auto-sync, and payroll calculations.
-- 🎯 [**Edge Case & Boundary Decisions**](docs/edge_case_decisions.md) — Documented edge-case solutions and rationale.
-- 🧪 [**Testing & QA Guide**](docs/testing_guide.md) — Test architecture, fixtures, and verification inventory.
+- [**Architecture Guide**](docs/architecture.md) — Multi-tier design, layer decoupling, security architecture, and styling rules.
+- [**Database Design**](docs/database-design.md) — Schema definitions, indexes, design rationales, and constraints.
+- [**Entity Relationship Diagram**](docs/er-diagram.md) — Visual Mermaid ERD and relational model mapping.
+- [**Permission & RBAC Matrix**](docs/permission-matrix.md) — Resource access rules and identity-trust guarantees.
+- [**Workflows & Business Rules**](docs/workflows.md) — Leave lifecycle, attendance auto-sync, and payroll calculations.
+- [**Edge Case & Boundary Decisions**](docs/edge_case_decisions.md) — Documented edge-case solutions and rationale.
+- [**Testing & QA Guide**](docs/testing_guide.md) — Test architecture, fixtures, and verification inventory.
 
 ---
 
-## 📄 License
+## License
 
 This project is licensed under the [MIT License](LICENSE).
