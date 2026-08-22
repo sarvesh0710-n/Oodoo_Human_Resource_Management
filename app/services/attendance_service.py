@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.models.attendance import Attendance
 from app.models.employee import Employee
+from app.models.leave import LeaveRequest
 from app.models.user import User
 
 
@@ -44,16 +45,25 @@ def check_in(db: Session, current_user: User, check_in_time: Optional[time] = No
 
     today = date.today()
 
+    # Guard: Cannot check in if employee is on approved leave today
+    approved_leave = db.query(LeaveRequest).filter(
+        LeaveRequest.employee_id == emp.id,
+        LeaveRequest.status == "approved",
+        LeaveRequest.start_date <= today,
+        LeaveRequest.end_date >= today,
+    ).first()
+
     existing = db.query(Attendance).filter(
         Attendance.employee_id == emp.id, Attendance.date == today
     ).first()
 
+    if approved_leave or (existing and existing.status == "leave"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot check in: You are on approved leave today",
+        )
+
     if existing:
-        if existing.status == "leave":
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Employee is on approved leave today",
-            )
         if existing.check_in is not None:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -86,14 +96,22 @@ def check_out(db: Session, current_user: User, check_out_time: Optional[time] = 
 
     today = date.today()
 
+    # Guard: Cannot check out if employee is on approved leave today
+    approved_leave = db.query(LeaveRequest).filter(
+        LeaveRequest.employee_id == emp.id,
+        LeaveRequest.status == "approved",
+        LeaveRequest.start_date <= today,
+        LeaveRequest.end_date >= today,
+    ).first()
+
     existing = db.query(Attendance).filter(
         Attendance.employee_id == emp.id, Attendance.date == today
     ).first()
 
-    if existing and existing.status == "leave":
+    if approved_leave or (existing and existing.status == "leave"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Employee is on approved leave today",
+            detail="Cannot check out: You are on approved leave today",
         )
 
     if not existing or existing.check_in is None:

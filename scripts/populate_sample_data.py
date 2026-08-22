@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """
-Dayflow HRMS — Comprehensive Database Population Script
-Populates departments, HR admins, employees across departments, attendance check-ins/check-outs,
-leave requests, and salary structures.
+Dayflow HRMS — Comprehensive Database Population Script (randomized)
+Populates departments, HR admins, employees across departments, attendance
+check-ins/check-outs (with realistic variance), leave requests, and salary
+structures.
 
 Usage:
     python -m scripts.populate_sample_data
 """
+import random
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from sqlalchemy.orm import Session
@@ -20,10 +22,47 @@ from app.models.leave import LeaveType, LeaveRequest
 from app.models.attendance import Attendance
 from app.models.payroll import SalaryStructure, Payslip
 
+# Fixed seed so a demo run is reproducible if you need to re-run it live,
+# but still gives varied-looking data. Delete the seed() call below if you
+# want fresh randomness every run.
+random.seed(42)
+
+FIRST_NAMES = [
+    "Alex", "David", "Elena", "Marcus", "Sophia", "Priya", "Jordan", "Nina",
+    "Carlos", "Fatima", "Liam", "Aisha", "Ravi", "Grace", "Tomas", "Yuki",
+]
+LAST_NAMES = [
+    "Rivers", "Chen", "Rostova", "Thorne", "Alvarez", "Nair", "Wells", "Petrov",
+    "Mendes", "Khan", "O'Brien", "Bello", "Kapoor", "Lindqvist", "Silva", "Tanaka",
+]
+JOB_TITLES_BY_DEPT = {
+    "Engineering": ["Software Engineer", "Backend Developer", "DevOps Engineer", "QA Engineer", "Engineering Lead"],
+    "Human Resources": ["HR Generalist", "Talent Acquisition Specialist", "HR Operations Analyst"],
+    "Product & UX": ["UX Designer", "Product Manager", "UI Researcher"],
+    "Marketing": ["Marketing Manager", "Content Strategist", "Growth Analyst"],
+    "Finance & Legal": ["Financial Analyst", "Payroll Specialist", "Compliance Officer"],
+}
+
+# (status, check_in, check_out) templates — check_out=None means "still checked in"
+ATTENDANCE_PATTERNS = [
+    ("present", time(9, 0, 0), time(17, 30, 0)),
+    ("present", time(8, 45, 0), time(17, 15, 0)),
+    ("present", time(9, 5, 0), time(18, 0, 0)),
+    ("late", time(10, 15, 0), time(18, 30, 0)),
+    ("late", time(10, 45, 0), time(17, 45, 0)),
+    ("half_day", time(9, 0, 0), time(13, 0, 0)),
+    ("absent", None, None),
+]
+ATTENDANCE_WEIGHTS = [30, 20, 15, 10, 8, 7, 10]  # present-heavy, some absences
+
+
+def rand_phone():
+    return f"+1 ({random.randint(200, 999)}) {random.randint(100, 999)}-{random.randint(1000, 9999)}"
+
 
 def populate_full_sample_data(db: Session):
     print("==================================================")
-    print("   POPULATING COMPREHENSIVE SAMPLE DATA          ")
+    print("   POPULATING COMPREHENSIVE SAMPLE DATA (RANDOM)  ")
     print("==================================================")
 
     # 1. Departments
@@ -72,36 +111,21 @@ def populate_full_sample_data(db: Session):
     # 3. HR Admins
     print("\n[*] Populating HR Admins...")
     hrs_def = [
-        {
-            "email": "hr@company.com",
-            "code": "HR_LEAD_01",
-            "pass": "admin123",
-            "first": "Sarah",
-            "last": "Jenkins",
-            "title": "Head of Human Resources",
-            "dept": dept_map["Human Resources"].id,
-        },
-        {
-            "email": "hr_ops@company.com",
-            "code": "HR_OPS_02",
-            "pass": "admin123",
-            "first": "Michael",
-            "last": "Vance",
-            "title": "HR Operations Specialist",
-            "dept": dept_map["Human Resources"].id,
-        },
+        {"email": "hr@company.com", "code": "HR_LEAD_01", "pass": "admin123",
+         "first": "Sarah", "last": "Jenkins", "title": "Head of Human Resources",
+         "dept": dept_map["Human Resources"].id},
+        {"email": "hr_ops@company.com", "code": "HR_OPS_02", "pass": "admin123",
+         "first": "Michael", "last": "Vance", "title": "HR Operations Specialist",
+         "dept": dept_map["Human Resources"].id},
     ]
     hr_emp_ids = []
     for h in hrs_def:
         u = db.query(User).filter(User.email == h["email"]).first()
         if not u:
             u = User(
-                employee_code=h["code"],
-                email=h["email"],
+                employee_code=h["code"], email=h["email"],
                 password_hash=get_password_hash(h["pass"]),
-                role="admin_hr",
-                is_verified=True,
-                is_active=True,
+                role="admin_hr", is_verified=True, is_active=True,
             )
             db.add(u)
             db.commit()
@@ -110,85 +134,72 @@ def populate_full_sample_data(db: Session):
         e = db.query(Employee).filter(Employee.user_id == u.id).first()
         if not e:
             e = Employee(
-                user_id=u.id,
-                department_id=h["dept"],
-                first_name=h["first"],
-                last_name=h["last"],
-                job_title=h["title"],
-                phone="+1 (555) 019-2831",
-                joining_date=date(2024, 6, 1),
+                user_id=u.id, department_id=h["dept"],
+                first_name=h["first"], last_name=h["last"], job_title=h["title"],
+                phone=rand_phone(), joining_date=date(2024, 6, 1),
             )
             db.add(e)
             db.commit()
             db.refresh(e)
         hr_emp_ids.append(e.id)
 
-    # 4. Employees across Departments
+    # 4. Randomized employees across departments (kept + fixed demo logins,
+    # plus extra randomly-generated employees per department for volume)
     print("\n[*] Populating Departmental Employees...")
-    emps_def = [
-        {
-            "email": "employee@company.com",
-            "code": "EMP_001",
-            "pass": "emp123",
-            "first": "Alex",
-            "last": "Rivers",
-            "title": "Lead Software Engineer",
-            "dept": dept_map["Engineering"].id,
-            "salary": (Decimal("6500.00"), Decimal("1500.00"), Decimal("500.00")),
-        },
-        {
-            "email": "david.dev@company.com",
-            "code": "EMP_ENG_02",
-            "pass": "emp123",
-            "first": "David",
-            "last": "Chen",
-            "title": "Backend Systems Developer",
-            "dept": dept_map["Engineering"].id,
-            "salary": (Decimal("5500.00"), Decimal("1000.00"), Decimal("400.00")),
-        },
-        {
-            "email": "elena.ux@company.com",
-            "code": "EMP_UX_03",
-            "pass": "emp123",
-            "first": "Elena",
-            "last": "Rostova",
-            "title": "Senior UX Designer",
-            "dept": dept_map["Product & UX"].id,
-            "salary": (Decimal("5800.00"), Decimal("1100.00"), Decimal("450.00")),
-        },
-        {
-            "email": "marcus.mkt@company.com",
-            "code": "EMP_MKT_04",
-            "pass": "emp123",
-            "first": "Marcus",
-            "last": "Thorne",
-            "title": "Growth Marketing Manager",
-            "dept": dept_map["Marketing"].id,
-            "salary": (Decimal("5200.00"), Decimal("900.00"), Decimal("350.00")),
-        },
-        {
-            "email": "sophia.fin@company.com",
-            "code": "EMP_FIN_05",
-            "pass": "emp123",
-            "first": "Sophia",
-            "last": "Alvarez",
-            "title": "Financial Analyst",
-            "dept": dept_map["Finance & Legal"].id,
-            "salary": (Decimal("6000.00"), Decimal("1200.00"), Decimal("480.00")),
-        },
+    fixed_emps_def = [
+        {"email": "employee@company.com", "code": "EMP_001", "pass": "emp123",
+         "first": "Alex", "last": "Rivers", "title": "Lead Software Engineer",
+         "dept": dept_map["Engineering"].id, "salary": (Decimal("6500.00"), Decimal("1500.00"), Decimal("500.00"))},
+        {"email": "david.dev@company.com", "code": "EMP_ENG_02", "pass": "emp123",
+         "first": "David", "last": "Chen", "title": "Backend Systems Developer",
+         "dept": dept_map["Engineering"].id, "salary": (Decimal("5500.00"), Decimal("1000.00"), Decimal("400.00"))},
+        {"email": "elena.ux@company.com", "code": "EMP_UX_03", "pass": "emp123",
+         "first": "Elena", "last": "Rostova", "title": "Senior UX Designer",
+         "dept": dept_map["Product & UX"].id, "salary": (Decimal("5800.00"), Decimal("1100.00"), Decimal("450.00"))},
+        {"email": "marcus.mkt@company.com", "code": "EMP_MKT_04", "pass": "emp123",
+         "first": "Marcus", "last": "Thorne", "title": "Growth Marketing Manager",
+         "dept": dept_map["Marketing"].id, "salary": (Decimal("5200.00"), Decimal("900.00"), Decimal("350.00"))},
+        {"email": "sophia.fin@company.com", "code": "EMP_FIN_05", "pass": "emp123",
+         "first": "Sophia", "last": "Alvarez", "title": "Financial Analyst",
+         "dept": dept_map["Finance & Legal"].id, "salary": (Decimal("6000.00"), Decimal("1200.00"), Decimal("480.00"))},
     ]
+
+    # Generate a handful of extra random employees per department for volume/realism.
+    extra_emps_def = []
+    used_names = set()
+    counter = 6
+    for dept_name, dept in dept_map.items():
+        if dept_name == "Human Resources":
+            continue  # HR already has its two admins
+        for _ in range(random.randint(2, 4)):
+            fn, ln = None, None
+            while (fn, ln) in used_names or fn is None:
+                fn, ln = random.choice(FIRST_NAMES), random.choice(LAST_NAMES)
+            used_names.add((fn, ln))
+            code = f"EMP_{dept_name[:3].upper()}_{counter:02d}"
+            email = f"{fn.lower()}.{ln.lower().replace(chr(39), '')}{counter}@company.com"
+            base = Decimal(random.randint(3800, 7200))
+            allowances = (base * Decimal("0.2")).quantize(Decimal("1.00"))
+            deductions = (base * Decimal("0.07")).quantize(Decimal("1.00"))
+            extra_emps_def.append({
+                "email": email, "code": code, "pass": "emp123",
+                "first": fn, "last": ln,
+                "title": random.choice(JOB_TITLES_BY_DEPT.get(dept_name, ["Staff Member"])),
+                "dept": dept.id,
+                "salary": (base, allowances, deductions),
+            })
+            counter += 1
+
+    emps_def = fixed_emps_def + extra_emps_def
 
     created_employees = []
     for ed in emps_def:
         u = db.query(User).filter(User.email == ed["email"]).first()
         if not u:
             u = User(
-                employee_code=ed["code"],
-                email=ed["email"],
+                employee_code=ed["code"], email=ed["email"],
                 password_hash=get_password_hash(ed["pass"]),
-                role="employee",
-                is_verified=True,
-                is_active=True,
+                role="employee", is_verified=True, is_active=True,
             )
             db.add(u)
             db.commit()
@@ -198,124 +209,110 @@ def populate_full_sample_data(db: Session):
         e = db.query(Employee).filter(Employee.user_id == u.id).first()
         if not e:
             e = Employee(
-                user_id=u.id,
-                department_id=ed["dept"],
-                manager_id=hr_emp_ids[0],
-                first_name=ed["first"],
-                last_name=ed["last"],
-                job_title=ed["title"],
-                phone="+1 (555) 782-9912",
-                joining_date=date(2025, 2, 1),
+                user_id=u.id, department_id=ed["dept"], manager_id=hr_emp_ids[0],
+                first_name=ed["first"], last_name=ed["last"], job_title=ed["title"],
+                phone=rand_phone(),
+                joining_date=date(2025, random.randint(1, 6), random.randint(1, 28)),
             )
             db.add(e)
             db.commit()
             db.refresh(e)
         created_employees.append(e)
 
-        # Salary Structure
         st = db.query(SalaryStructure).filter(SalaryStructure.employee_id == e.id).first()
         if not st:
             st = SalaryStructure(
                 employee_id=e.id,
-                basic_salary=ed["salary"][0],
-                allowances=ed["salary"][1],
-                deductions=ed["salary"][2],
+                basic_salary=ed["salary"][0], allowances=ed["salary"][1], deductions=ed["salary"][2],
                 effective_from=date(2025, 2, 1),
             )
             db.add(st)
             db.commit()
-            print(f"    - Added Salary Structure for {e.first_name} {e.last_name}: ${ed['salary'][0] + ed['salary'][1] - ed['salary'][2]} Net")
+            net = ed["salary"][0] + ed["salary"][1] - ed["salary"][2]
+            print(f"    - Salary Structure for {e.first_name} {e.last_name}: ${net} Net")
 
-    # 5. Department & Employee Attendance Records (Past 5 Days)
-    print("\n[*] Populating Attendance Check-ins & Check-outs...")
+    # 5. Randomized attendance across the past 14 working days
+    print("\n[*] Populating Attendance (randomized patterns, last 14 days)...")
     today = date.today()
     all_emps = db.query(Employee).all()
     for emp in all_emps:
-        for offset in range(5, 0, -1):
+        offset = 14
+        while offset > 0:
             att_date = today - timedelta(days=offset)
-            # Skip weekends (5 = Sat, 6 = Sun)
-            if att_date.weekday() in (5, 6):
+            offset -= 1
+            if att_date.weekday() in (5, 6):  # skip weekends
                 continue
-            existing_att = db.query(Attendance).filter(Attendance.employee_id == emp.id, Attendance.date == att_date).first()
-            if not existing_att:
-                att = Attendance(
-                    employee_id=emp.id,
-                    date=att_date,
-                    check_in=time(9, 0, 0),
-                    check_out=time(17, 30, 0),
-                    status="present",
-                )
-                db.add(att)
-                print(f"  + Added Attendance: Emp #{emp.id} on {att_date} (09:00 - 17:30)")
+            existing = db.query(Attendance).filter(
+                Attendance.employee_id == emp.id, Attendance.date == att_date
+            ).first()
+            if existing:
+                continue
+            status, check_in, check_out = random.choices(ATTENDANCE_PATTERNS, weights=ATTENDANCE_WEIGHTS, k=1)[0]
+            att = Attendance(
+                employee_id=emp.id,
+                date=att_date,
+                check_in=check_in,
+                check_out=check_out,
+                status=status,
+            )
+            db.add(att)
+    db.commit()
+    print("  + Attendance records generated for all employees.")
+
+    # A few employees "still checked in" today (no check_out yet) for a live demo feel
+    for emp in random.sample(all_emps, k=min(3, len(all_emps))):
+        t_att = db.query(Attendance).filter(Attendance.employee_id == emp.id, Attendance.date == today).first()
+        if not t_att:
+            t_att = Attendance(
+                employee_id=emp.id, date=today,
+                check_in=time(random.randint(8, 9), random.randint(0, 59), 0),
+                status="present",
+            )
+            db.add(t_att)
     db.commit()
 
-    # Today's check-in for first employee
-    t_att = db.query(Attendance).filter(Attendance.employee_id == created_employees[0].id, Attendance.date == today).first()
-    if not t_att:
-        t_att = Attendance(
-            employee_id=created_employees[0].id,
-            date=today,
-            check_in=time(8, 55, 0),
-            status="present",
+    # 6. Randomized leave requests across employees, types, and statuses
+    print("\n[*] Populating Leave Requests (varied statuses)...")
+    leave_type_list = list(lt_map.values())
+    statuses_weighted = ["approved"] * 4 + ["pending"] * 3 + ["rejected"] * 2
+
+    sample_pool = random.sample(created_employees, k=min(8, len(created_employees)))
+    for i, emp in enumerate(sample_pool):
+        lt = random.choice(leave_type_list)
+        status = random.choice(statuses_weighted)
+        start_offset = random.randint(-20, 25)
+        span = random.randint(1, 5)
+        start = today + timedelta(days=start_offset)
+        end = start + timedelta(days=span)
+
+        existing_lr = db.query(LeaveRequest).filter(
+            LeaveRequest.employee_id == emp.id, LeaveRequest.start_date == start
+        ).first()
+        if existing_lr:
+            continue
+
+        reviewed = status in ("approved", "rejected")
+        lr = LeaveRequest(
+            employee_id=emp.id,
+            leave_type_id=lt.id,
+            start_date=start,
+            end_date=end,
+            remarks=random.choice([
+                "Annual family vacation", "Medical appointment", "Personal matter",
+                "Family emergency", "Relocation", "Wedding in family", "Recovery time",
+            ]),
+            status=status,
+            review_comment=("Approved by HR" if status == "approved" else "Insufficient notice" if status == "rejected" else None),
+            reviewed_by=(hr_emp_ids[0] if reviewed else None),
+            reviewed_at=(datetime.now() if reviewed else None),
         )
-        db.add(t_att)
-        db.commit()
-
-    # 6. Sample Department & Employee Leave Requests
-    print("\n[*] Populating Department & Employee Leave Requests...")
-    paid_lt = lt_map["Paid Annual Leave"]
-    sick_lt = lt_map["Sick Leave"]
-
-    leave_samples = [
-        {
-            "emp_id": created_employees[0].id,
-            "type_id": paid_lt.id,
-            "start": today + timedelta(days=10),
-            "end": today + timedelta(days=14),
-            "remarks": "Annual family vacation",
-            "status": "approved",
-            "comment": "Approved by HR",
-            "reviewer": hr_emp_ids[0],
-        },
-        {
-            "emp_id": created_employees[1].id,
-            "type_id": sick_lt.id,
-            "start": today + timedelta(days=2),
-            "end": today + timedelta(days=3),
-            "remarks": "Medical dental procedure",
-            "status": "pending",
-            "comment": None,
-            "reviewer": None,
-        },
-    ]
-
-    for ls in leave_samples:
-        existing_lr = (
-            db.query(LeaveRequest)
-            .filter(
-                LeaveRequest.employee_id == ls["emp_id"],
-                LeaveRequest.start_date == ls["start"],
-            )
-            .first()
-        )
-        if not existing_lr:
-            lr = LeaveRequest(
-                employee_id=ls["emp_id"],
-                leave_type_id=ls["type_id"],
-                start_date=ls["start"],
-                end_date=ls["end"],
-                remarks=ls["remarks"],
-                status=ls["status"],
-                review_comment=ls["comment"],
-                reviewed_by=ls["reviewer"],
-                reviewed_at=datetime.now() if ls["reviewer"] else None,
-            )
-            db.add(lr)
-            print(f"  + Added Leave Request for Emp #{ls['emp_id']} ({ls['status']})")
+        db.add(lr)
+        print(f"  + Leave Request for Emp #{emp.id} ({lt.name}, {status})")
     db.commit()
 
     print("\n==================================================")
-    print("[✓] FULL SAMPLE DATA POPULATED SUCCESSFULLY!")
+    print("[✓] FULL RANDOM SAMPLE DATA POPULATED SUCCESSFULLY!")
+    print(f"    Total employees in DB: {len(all_emps)}")
     print("==================================================")
 
 
