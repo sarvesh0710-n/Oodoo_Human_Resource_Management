@@ -37,7 +37,6 @@ def check_in(db: Session, current_user: User, check_in_time: Optional[time] = No
         raise HTTPException(status_code=404, detail="Employee record not found")
 
     today = date.today()
-    now_time = check_in_time or datetime.now().time()
 
     existing = db.query(Attendance).filter(
         Attendance.employee_id == emp.id, Attendance.date == today
@@ -49,17 +48,14 @@ def check_in(db: Session, current_user: User, check_in_time: Optional[time] = No
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Already checked in today",
             )
-        if existing.check_out is not None and now_time >= existing.check_out:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Check-in time must be strictly before check-out time",
-            )
+        now_time = check_in_time if check_in_time is not None else datetime.now().time()
         existing.check_in = now_time
         existing.status = "present"
         db.commit()
         db.refresh(existing)
         return existing
 
+    now_time = check_in_time if check_in_time is not None else datetime.now().time()
     record = Attendance(
         employee_id=emp.id,
         date=today,
@@ -78,7 +74,6 @@ def check_out(db: Session, current_user: User, check_out_time: Optional[time] = 
         raise HTTPException(status_code=404, detail="Employee record not found")
 
     today = date.today()
-    now_time = check_out_time or datetime.now().time()
 
     existing = db.query(Attendance).filter(
         Attendance.employee_id == emp.id, Attendance.date == today
@@ -90,12 +85,13 @@ def check_out(db: Session, current_user: User, check_out_time: Optional[time] = 
             detail="Cannot check out without prior check-in today",
         )
 
-    if now_time <= existing.check_in:
+    if check_out_time is not None and check_out_time <= existing.check_in:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Check-out time must be strictly after check-in time",
         )
 
+    now_time = check_out_time if check_out_time is not None else datetime.now().time()
     existing.check_out = now_time
     existing.status = "present"
     db.commit()

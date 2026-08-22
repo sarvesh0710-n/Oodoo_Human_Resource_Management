@@ -1,3 +1,4 @@
+import logging
 import os
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
@@ -7,19 +8,24 @@ from passlib.context import CryptContext
 
 load_dotenv()
 
+logger = logging.getLogger(__name__)
+
 _secret = os.getenv("SECRET_KEY")
+_env = os.getenv("DAYFLOW_ENV", "").lower()
 _is_dev_mode = (
-    os.getenv("DEBUG", "").lower() in ("true", "1", "yes")
+    _env in ("dev", "development")
+    or os.getenv("DEBUG", "").lower() in ("true", "1", "yes")
     or os.getenv("DEV", "").lower() in ("true", "1", "yes")
 )
 
 if not _secret:
     if _is_dev_mode:
+        logger.warning("WARNING: SECRET_KEY is not set. Using dev-only default secret key because dev mode is enabled.")
         SECRET_KEY = "dev_only_default_secret_key_do_not_use_in_production"
     else:
         raise RuntimeError(
             "FATAL SECURITY CONFIGURATION ERROR: SECRET_KEY environment variable is not set. "
-            "Please define SECRET_KEY in your .env file or environment, or set DEBUG=true for local development."
+            "Please define SECRET_KEY in your .env file or environment, or set DAYFLOW_ENV=dev for local development."
         )
 else:
     SECRET_KEY = _secret
