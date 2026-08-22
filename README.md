@@ -19,11 +19,11 @@ The system is architected with a strict separation of concerns, offering both **
 ## Table of Contents
 
 - [Key Features](#key-features)
+- [Authentication & Role Routing Workflow](#authentication--role-routing-workflow)
 - [System Architecture](#system-architecture)
-- [Database Schema & ER Diagram](#database-schema--er-diagram)
+- [Database Schema & ER Relationships](#database-schema--er-relationships)
 - [Technology Stack](#technology-stack)
 - [UI Design System](#ui-design-system)
-- [Role-Based Access Control & Security](#role-based-access-control--security)
 - [Pre-Seeded Demo Login Credentials](#pre-seeded-demo-login-credentials)
 - [CLI Database Management Commands](#cli-database-management-commands)
 - [Running the Application](#running-the-application)
@@ -77,154 +77,176 @@ The system is architected with a strict separation of concerns, offering both **
 
 ---
 
+## Authentication & Role Routing Workflow
+
+Dayflow HRMS provides a single universal login entrypoint that automatically detects the authenticated user's role and directs them to their respective operational dashboard:
+
+<div style="background: #F4F7F5; padding: 24px; border-radius: 20px; border: 1px solid #D2DDD7; margin: 20px 0;">
+  
+  <div style="background: #14382B; color: #FFFFFF; padding: 14px 20px; border-radius: 14px; font-weight: 700; font-size: 1.05rem; margin-bottom: 16px;">
+    1. Single Universal Login Entrypoint (<code>/login</code>)
+  </div>
+  <p style="color: #556E63; margin-bottom: 20px; font-size: 0.9rem;">
+    User submits credentials (Work Email or Employee Code + Password).
+  </p>
+
+  <div style="background: #1E4D3B; color: #FFFFFF; padding: 14px 20px; border-radius: 14px; font-weight: 700; font-size: 1.05rem; margin-bottom: 16px;">
+    2. FastAPI Backend Verification & Role Extraction
+  </div>
+  <p style="color: #556E63; margin-bottom: 20px; font-size: 0.9rem;">
+    Backend validates bcrypt hash, issues signed <code>HS256</code> JWT access token in an <code>HttpOnly</code> secure cookie, and reads user role (<code>admin_hr</code> vs <code>employee</code>).
+  </p>
+
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px;">
+    <div style="background: #FFFFFF; border: 1px solid #C8DCD2; padding: 18px; border-radius: 16px; box-shadow: 0 4px 12px rgba(20,56,43,0.05);">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+        <span style="font-weight: 700; color: #1E4D3B; font-size: 1rem;">Role: HR Administrator</span>
+        <span style="background: #1E4D3B; color: #FFFFFF; padding: 3px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600;">admin_hr</span>
+      </div>
+      <p style="font-size: 0.85rem; color: #556E63; margin-bottom: 12px;"><strong>Redirect Path:</strong> <code>/admin-dashboard</code></p>
+      <ul style="font-size: 0.85rem; color: #1A2B23; padding-left: 18px; line-height: 1.6;">
+        <li>HR Overview & Real-Time Active Headcount</li>
+        <li>Interactive Department Leave Analytics Chart</li>
+        <li>Employee Onboarding & Staff Directory</li>
+        <li>Department Hierarchy & Real-Time Modal Editing</li>
+        <li>Leave Approval Queue & HR Comments</li>
+        <li>Salary Structure Setup & Bulk Payslip Generation</li>
+        <li>System Audit Trail Viewer</li>
+      </ul>
+    </div>
+
+    <div style="background: #FFFFFF; border: 1px solid #C8DCD2; padding: 18px; border-radius: 16px; box-shadow: 0 4px 12px rgba(20,56,43,0.05);">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+        <span style="font-weight: 700; color: #1E4D3B; font-size: 1rem;">Role: Standard Employee</span>
+        <span style="background: #E8F2EE; color: #1E4D3B; padding: 3px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600;">employee</span>
+      </div>
+      <p style="font-size: 0.85rem; color: #556E63; margin-bottom: 12px;"><strong>Redirect Path:</strong> <code>/dashboard</code></p>
+      <ul style="font-size: 0.85rem; color: #1A2B23; padding-left: 18px; line-height: 1.6;">
+        <li>Personal Shift Summary & Leave Quota Balance</li>
+        <li>One-Click Clock-In / Clock-Out Shift Tracking</li>
+        <li>Personal Monthly Attendance Calendar Grid</li>
+        <li>Submit Time-Off Requests & View Approval Status</li>
+        <li>View & Print Personal Monthly Payslip Statements</li>
+        <li>Contact Profile Information Editor</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+---
+
 ## System Architecture
 
 Dayflow HRMS is built using a strict **Layered Architecture Pattern** to decouple HTTP presentation, business logic execution, data persistence, and UI rendering:
 
-```text
-               +-----------------------------------------+
-               |         Client Browser / REST API       |
-               +--------------------+--------------------+
-                                    |
-               +--------------------v--------------------+
-               |    FastAPI Presentation Layer           |
-               |   • Jinja2 HTML Views (app/web/views.py)|
-               |   • JSON REST APIs    (app/api/*.py)    |
-               +--------------------+--------------------+
-                                    |
-               +--------------------v--------------------+
-               |    Security & Dependency Injection      |
-               |   • JWT Cookie Auth (app/core/deps.py)  |
-               |   • Role-Based Guard (require_role)     |
-               +--------------------+--------------------+
-                                    |
-               +--------------------v--------------------+
-               |    Domain Service Layer                 |
-               |   • Attendance, Leave, Payroll Services |
-               |   • SEC-13 Self-Action Guards           |
-               |   • Audit Logging Dispatcher            |
-               +--------------------+--------------------+
-                                    |
-               +--------------------v--------------------+
-               |    Data Persistence (SQLAlchemy 2.0)    |
-               |   • Declarative ORM Models (app/models/)|
-               |   • PostgreSQL / SQLite Dual Support    |
-               |   • Alembic Versioned Migrations        |
-               +-----------------------------------------+
-```
+<div style="background: #FFFFFF; border: 1px solid #E2EAE5; padding: 20px; border-radius: 18px; margin: 20px 0;">
+  <div style="text-align: center; background: #F4F7F5; padding: 12px; border-radius: 12px; font-weight: 700; color: #14382B; margin-bottom: 12px;">
+    1. Client Presentation Layer (Browser Portal / REST Consumers)
+  </div>
+  <div style="text-align: center; color: #556E63; margin-bottom: 12px;">↓</div>
+  <div style="text-align: center; background: #E8F2EE; padding: 12px; border-radius: 12px; font-weight: 700; color: #1E4D3B; margin-bottom: 12px;">
+    2. FastAPI Web Router (Jinja2 HTML Views) & REST API Handlers (JSON)
+  </div>
+  <div style="text-align: center; color: #556E63; margin-bottom: 12px;">↓</div>
+  <div style="text-align: center; background: #F4F7F5; padding: 12px; border-radius: 12px; font-weight: 700; color: #14382B; margin-bottom: 12px;">
+    3. Security & Dependency Injection Layer (JWT Auth Cookie & Role Guards)
+  </div>
+  <div style="text-align: center; color: #556E63; margin-bottom: 12px;">↓</div>
+  <div style="text-align: center; background: #E8F2EE; padding: 12px; border-radius: 12px; font-weight: 700; color: #1E4D3B; margin-bottom: 12px;">
+    4. Domain Service Layer (Attendance, Leave Overlap, Payroll, SEC-13 Self-Action Guards)
+  </div>
+  <div style="text-align: center; color: #556E63; margin-bottom: 12px;">↓</div>
+  <div style="text-align: center; background: #14382B; color: #FFFFFF; padding: 12px; border-radius: 12px; font-weight: 700;">
+    5. Data Persistence Layer (SQLAlchemy 2.0 ORM + PostgreSQL / SQLite)
+  </div>
+</div>
 
 ---
 
-## Database Schema & ER Diagram
+## Database Schema & ER Relationships
 
-The entity relationship diagram visualizes all 9 domain models and foreign key constraints:
+The database schema consists of 9 normalized domain entities connected via primary and foreign key constraints:
 
-```mermaid
-erDiagram
-  DEPARTMENT ||--o{ EMPLOYEE : contains
-  USER ||--|| EMPLOYEE : "is"
-  EMPLOYEE ||--o{ ATTENDANCE : logs
-  EMPLOYEE ||--o{ LEAVE_REQUEST : submits
-  LEAVE_TYPE ||--o{ LEAVE_REQUEST : categorizes
-  USER ||--o{ LEAVE_REQUEST : reviews
-  EMPLOYEE ||--o{ SALARY_STRUCTURE : has
-  EMPLOYEE ||--o{ PAYSLIP : receives
-  SALARY_STRUCTURE ||--o{ PAYSLIP : generates
-  USER ||--o{ AUDIT_LOG : performs
+<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 20px 0;">
+  
+  <!-- User Entity Card -->
+  <div style="background: #FFFFFF; border: 1px solid #D2DDD7; border-radius: 16px; padding: 16px; box-shadow: 0 4px 12px rgba(20,56,43,0.04);">
+    <div style="font-weight: 700; color: #14382B; font-size: 1rem; margin-bottom: 6px;">User</div>
+    <div style="font-size: 0.75rem; color: #556E63; margin-bottom: 10px;">Authentication & Role Credentials</div>
+    <table style="width: 100%; font-size: 0.8rem; border-collapse: collapse;">
+      <tr style="border-bottom: 1px solid #EDF3EF;"><td><strong>id</strong></td><td style="color: #2A6B53;">PK</td></tr>
+      <tr style="border-bottom: 1px solid #EDF3EF;"><td>employee_code</td><td style="color: #556E63;">Unique String</td></tr>
+      <tr style="border-bottom: 1px solid #EDF3EF;"><td>email</td><td style="color: #556E63;">Unique String</td></tr>
+      <tr style="border-bottom: 1px solid #EDF3EF;"><td>password_hash</td><td style="color: #556E63;">String</td></tr>
+      <tr><td>role</td><td style="color: #1E4D3B;">employee / admin_hr</td></tr>
+    </table>
+  </div>
 
-  USER {
-    int id PK
-    string employee_code UK
-    string email UK
-    string password_hash
-    string role
-    bool is_verified
-    bool is_active
-  }
+  <!-- Employee Entity Card -->
+  <div style="background: #FFFFFF; border: 1px solid #D2DDD7; border-radius: 16px; padding: 16px; box-shadow: 0 4px 12px rgba(20,56,43,0.04);">
+    <div style="font-weight: 700; color: #14382B; font-size: 1rem; margin-bottom: 6px;">Employee</div>
+    <div style="font-size: 0.75rem; color: #556E63; margin-bottom: 10px;">Staff Profile & Hierarchy</div>
+    <table style="width: 100%; font-size: 0.8rem; border-collapse: collapse;">
+      <tr style="border-bottom: 1px solid #EDF3EF;"><td><strong>id</strong></td><td style="color: #2A6B53;">PK</td></tr>
+      <tr style="border-bottom: 1px solid #EDF3EF;"><td>user_id</td><td style="color: #1E4D3B;">FK -> User.id</td></tr>
+      <tr style="border-bottom: 1px solid #EDF3EF;"><td>department_id</td><td style="color: #1E4D3B;">FK -> Department.id</td></tr>
+      <tr style="border-bottom: 1px solid #EDF3EF;"><td>manager_id</td><td style="color: #1E4D3B;">FK -> Employee.id</td></tr>
+      <tr><td>first_name, last_name</td><td style="color: #556E63;">String</td></tr>
+    </table>
+  </div>
 
-  EMPLOYEE {
-    int id PK
-    int user_id FK
-    int department_id FK
-    int manager_id FK
-    string first_name
-    string last_name
-    string phone
-    string address
-    string job_title
-    date joining_date
-  }
+  <!-- Department Entity Card -->
+  <div style="background: #FFFFFF; border: 1px solid #D2DDD7; border-radius: 16px; padding: 16px; box-shadow: 0 4px 12px rgba(20,56,43,0.04);">
+    <div style="font-weight: 700; color: #14382B; font-size: 1rem; margin-bottom: 6px;">Department</div>
+    <div style="font-size: 0.75rem; color: #556E63; margin-bottom: 10px;">Organizational Units</div>
+    <table style="width: 100%; font-size: 0.8rem; border-collapse: collapse;">
+      <tr style="border-bottom: 1px solid #EDF3EF;"><td><strong>id</strong></td><td style="color: #2A6B53;">PK</td></tr>
+      <tr style="border-bottom: 1px solid #EDF3EF;"><td>name</td><td style="color: #556E63;">String</td></tr>
+      <tr style="border-bottom: 1px solid #EDF3EF;"><td>description</td><td style="color: #556E63;">Text</td></tr>
+      <tr><td>manager_id</td><td style="color: #1E4D3B;">FK -> Employee.id</td></tr>
+    </table>
+  </div>
 
-  DEPARTMENT {
-    int id PK
-    string name
-    string description
-    int manager_id FK
-  }
+  <!-- Attendance Entity Card -->
+  <div style="background: #FFFFFF; border: 1px solid #D2DDD7; border-radius: 16px; padding: 16px; box-shadow: 0 4px 12px rgba(20,56,43,0.04);">
+    <div style="font-weight: 700; color: #14382B; font-size: 1rem; margin-bottom: 6px;">Attendance</div>
+    <div style="font-size: 0.75rem; color: #556E63; margin-bottom: 10px;">Shift Clock & Duration</div>
+    <table style="width: 100%; font-size: 0.8rem; border-collapse: collapse;">
+      <tr style="border-bottom: 1px solid #EDF3EF;"><td><strong>id</strong></td><td style="color: #2A6B53;">PK</td></tr>
+      <tr style="border-bottom: 1px solid #EDF3EF;"><td>employee_id</td><td style="color: #1E4D3B;">FK -> Employee.id</td></tr>
+      <tr style="border-bottom: 1px solid #EDF3EF;"><td>date</td><td style="color: #556E63;">Date</td></tr>
+      <tr style="border-bottom: 1px solid #EDF3EF;"><td>check_in, check_out</td><td style="color: #556E63;">Time</td></tr>
+      <tr><td>status</td><td style="color: #556E63;">present/absent/leave</td></tr>
+    </table>
+  </div>
 
-  ATTENDANCE {
-    int id PK
-    int employee_id FK
-    date date
-    time check_in
-    time check_out
-    string status
-  }
+  <!-- LeaveRequest Entity Card -->
+  <div style="background: #FFFFFF; border: 1px solid #D2DDD7; border-radius: 16px; padding: 16px; box-shadow: 0 4px 12px rgba(20,56,43,0.04);">
+    <div style="font-weight: 700; color: #14382B; font-size: 1rem; margin-bottom: 6px;">LeaveRequest</div>
+    <div style="font-size: 0.75rem; color: #556E63; margin-bottom: 10px;">Time-Off Applications</div>
+    <table style="width: 100%; font-size: 0.8rem; border-collapse: collapse;">
+      <tr style="border-bottom: 1px solid #EDF3EF;"><td><strong>id</strong></td><td style="color: #2A6B53;">PK</td></tr>
+      <tr style="border-bottom: 1px solid #EDF3EF;"><td>employee_id</td><td style="color: #1E4D3B;">FK -> Employee.id</td></tr>
+      <tr style="border-bottom: 1px solid #EDF3EF;"><td>leave_type_id</td><td style="color: #1E4D3B;">FK -> LeaveType.id</td></tr>
+      <tr style="border-bottom: 1px solid #EDF3EF;"><td>start_date, end_date</td><td style="color: #556E63;">Date Window</td></tr>
+      <tr><td>status</td><td style="color: #556E63;">pending/approved/rejected</td></tr>
+    </table>
+  </div>
 
-  LEAVE_TYPE {
-    int id PK
-    string name
-    string description
-    bool is_paid
-  }
+  <!-- SalaryStructure Entity Card -->
+  <div style="background: #FFFFFF; border: 1px solid #D2DDD7; border-radius: 16px; padding: 16px; box-shadow: 0 4px 12px rgba(20,56,43,0.04);">
+    <div style="font-weight: 700; color: #14382B; font-size: 1rem; margin-bottom: 6px;">SalaryStructure</div>
+    <div style="font-size: 0.75rem; color: #556E63; margin-bottom: 10px;">Pay Packages</div>
+    <table style="width: 100%; font-size: 0.8rem; border-collapse: collapse;">
+      <tr style="border-bottom: 1px solid #EDF3EF;"><td><strong>id</strong></td><td style="color: #2A6B53;">PK</td></tr>
+      <tr style="border-bottom: 1px solid #EDF3EF;"><td>employee_id</td><td style="color: #1E4D3B;">FK -> Employee.id</td></tr>
+      <tr style="border-bottom: 1px solid #EDF3EF;"><td>basic_salary</td><td style="color: #556E63;">Numeric(10,2)</td></tr>
+      <tr style="border-bottom: 1px solid #EDF3EF;"><td>allowances, deductions</td><td style="color: #556E63;">Numeric(10,2)</td></tr>
+      <tr><td>effective_from/to</td><td style="color: #556E63;">Date Range</td></tr>
+    </table>
+  </div>
 
-  LEAVE_REQUEST {
-    int id PK
-    int employee_id FK
-    int leave_type_id FK
-    int reviewed_by FK
-    date start_date
-    date end_date
-    string remarks
-    string status
-    string review_comment
-    datetime reviewed_at
-    datetime created_at
-  }
-
-  SALARY_STRUCTURE {
-    int id PK
-    int employee_id FK
-    float basic_salary
-    float allowances
-    float deductions
-    date effective_from
-    date effective_to
-  }
-
-  PAYSLIP {
-    int id PK
-    int employee_id FK
-    int salary_structure_id FK
-    int month
-    int year
-    float basic_salary
-    float allowances
-    float deductions
-    float gross_salary
-    float net_salary
-    datetime generated_at
-  }
-
-  AUDIT_LOG {
-    int id PK
-    int user_id FK
-    string action
-    string entity
-    int entity_id
-    datetime timestamp
-  }
-```
+</div>
 
 ---
 
@@ -348,7 +370,7 @@ Explore the in-depth documentation in the [`docs/`](docs/) directory:
 
 - [**Architecture Guide**](docs/architecture.md) — Multi-tier design, layer decoupling, security architecture, and styling rules.
 - [**Database Design**](docs/database-design.md) — Schema definitions, indexes, design rationales, and constraints.
-- [**Entity Relationship Diagram**](docs/er-diagram.md) — Visual Mermaid ERD and relational model mapping.
+- [**Entity Relationship Diagram**](docs/er-diagram.md) — Relational model mapping & foreign key constraints.
 - [**Permission & RBAC Matrix**](docs/permission-matrix.md) — Resource access rules and identity-trust guarantees.
 - [**Workflows & Business Rules**](docs/workflows.md) — Leave lifecycle, attendance auto-sync, and payroll calculations.
 - [**Edge Case & Boundary Decisions**](docs/edge_case_decisions.md) — Documented edge-case solutions and rationale.
