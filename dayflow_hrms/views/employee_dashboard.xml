@@ -1,0 +1,377 @@
+k                        <p class="card-value">
+                            Present
+                        </p>
+
+                        <p>
+                            Check-in: 09:15 AM
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Leave -->
+                <div class="dashboard-card">
+
+                    <div class="card-icon">🏖️</div>
+
+                    <div>
+                        <h3>Leave Balance</h3>
+
+                        <p class="card-value">
+                            12 Days
+                        </p>
+
+                        <p>
+                            Available
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Payroll -->
+                <div class="dashboard-card">
+
+                    <div class="card-icon">💰</div>
+
+                    <div>
+                        <h3>Latest Salary</h3>
+
+                        <p class="card-value">
+                            ₹35,000
+                        </p>
+
+                        <p>
+                            August 2026
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Requests -->
+                <div class="dashboard-card">
+
+                    <div class="card-icon">📋</div>
+
+                    <div>
+                        <h3>Leave Requests</h3>
+
+                        <p class="card-value">
+                            2
+                        </p>
+
+                        <p>
+                            Pending
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- Attendance Section -->
+
+            <div class="dashboard-section">
+
+                <div class="section-header">
+
+                    <div>
+                        <h2>Today's Attendance</h2>
+                        <p>Track your working hours</p>
+                    </div>
+
+                    <span class="attendance-status">
+                        Present
+                    </span>
+
+                </div>
+
+
+                <div class="attendance-details">
+
+                    <div>
+                        <span>Check In</span>
+                        <strong>09:15 AM</strong>
+                    </div>
+
+                                 </button>
+
+                </div>
+
+            </div>
+
+
+            <!-- Quick Actions -->
+
+            <div class="dashboard-section">
+
+                <h2>Quick Actions</h2>
+
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <template id="employee_dashboard" name="Dayflow Employee Dashboard">
+
+        <div class="dayflow-dashboard">
+
+            <!-- Header -->
+            <div class="dashboard-header">
+
+                <div>
+                    <h1>Good Morning 👋</h1>
+                    <p>Welcome back to Dayflow</p>
+                </div>
+
+                <div class="employee-info">
+                    <div class="employee-avatar">K</div>
+                    <div>
+                        <strong>Karthika</strong>
+                        <span>Employee</span>
+                    </div>
+                </div>
+
+            </div>
+
+
+            <!-- Summary Cards -->
+            <div class="dashboard-cards">
+
+                <!-- Attendance -->
+                <div class="dashboard-card">
+
+                    <div class="card-icon">🕒</div>
+
+                    <div>
+                        <h3>Today's Attendance</h3>
+
+                        <p class="card-value">
+                            Present
+                        </p>
+
+                        <p>
+                            Check-in: 09:15 AM
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Leave -->
+                <div class="dashboard-card">
+
+                    <div class="card-icon">🏖️</div>
+
+                    <div>
+                        <h3>Leave Balance</h3>
+
+                        <p class="card-value">
+                            12 Days
+                        </p>
+
+                        <p>
+                            Available
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Payroll -->
+                <div class="dashboard-card">
+
+                    <div class="card-icon">💰</div>
+
+                    <div>
+                        <h3>Latest Salary</h3>
+
+                        <p class="card-value">
+                            ₹35,000
+                        </p>
+
+                        <p>
+                            August 2026
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Requests -->
+                <div class="dashboard-card">
+
+                    <div class="card-icon">📋</div>
+
+                    <div>
+                        <h3>Leave Requests</h3>
+
+                        <p class="card-value">
+                            2
+                        </p>
+
+                        <p>
+                            Pending
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- Attendance Section -->
+
+            <div class="dashboard-section">
+
+                <div class="section-header">
+
+                    <div>
+                        <h2>Today's Attendance</h2>
+                        <p>Track your working hours</p>
+                    </div>
+
+                    <span class="attendance-status">
+                        Present
+                    </span>
+
+                </div>
+
+
+                <div class="attendance-details">
+
+                    <div>
+                        <span>Check In</span>
+                        <strong>09:15 AM</strong>
+                    </div>
+
+                    <div>
+                        <span>Check Out</span>
+                        <strong>--:--</strong>
+                    </div>
+
+                    <div>
+                        <span>Working Hours</span>
+                        <strong>--</strong>
+                    </div>
+
+                </div>
+
+
+                <div class="attendance-actions">
+
+                    <button class="btn-primary">
+                        Check In
+                    </button>
+
+                    <button class="btn-secondary">
+                        Check Out
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <!-- Quick Actions -->
+
+            <div class="dashboard-section">
+
+                <h2>Quick Actions</h2>
+
+                <div class="quick-actions">
+
+                    <button>
+                        Apply Leave
+                    </button>
+
+                    <button>
+                        View Attendance
+                    </button>
+
+                    <button>
+                        View Payslip
+                    </button>
+
+                    <button>
+                        My Profile
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <!-- Recent Leave Requests -->
+
+            <div class="dashboard-section">
+
+                <div class="section-header">
+
+                    <div>
+                        <h2>Recent Leave Requests</h2>
+                        <p>Your latest leave applications</p>
+                    </div>
+
+                    <button class="view-all">
+                        View All
+                    </button>
+
+                </div>
+
+
+                <div class="leave-table">
+
+                    <div class="leave-row leave-header">
+
+                        <span>Leave Type</span>
+                        <span>From</span>
+                        <span>To</span>
+                        <span>Status</span>
+
+                    </div>
+
+
+                    <div class="leave-row">
+
+                        <span>Paid Leave</span>
+                        <span>15 Aug 2026</span>
+                        <span>16 Aug 2026</span>
+
+                        <span class="status pending">
+                            Pending
+                        </span>
+
+                    </div>
+
+
+                    <div class="leave-row">
+
+                        <span>Sick Leave</span>
+                        <span>02 Aug 2026</span>
+                        <span>02 Aug 2026</span>
+
+                        <span class="status approved">
+                            Approved
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </template>
+
+</odoo>
