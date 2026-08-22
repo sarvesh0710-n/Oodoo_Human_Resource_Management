@@ -336,6 +336,27 @@ def test_payroll_negative_net_salary_rejected(db_session, edge_fixture):
     assert "exceed gross salary" in exc_neg.value.detail
 
 
+def test_payroll_monetary_upper_bound_overflow_rejected(db_session, edge_fixture):
+    # PAYROLL EDGE 6: Extremely large monetary input (e.g. 1e250) is rejected with 400 Bad Request
+    admin1 = edge_fixture["admin1"]
+    emp1_record = edge_fixture["emp1_record"]
+
+    with pytest.raises(HTTPException) as exc_overflow:
+        payroll_service.create_salary_structure(
+            db_session,
+            admin1,
+            SalaryStructureCreate(
+                employee_id=emp1_record.id,
+                basic_salary=Decimal("1e250"),
+                allowances=Decimal("0.00"),
+                deductions=Decimal("0.00"),
+                effective_from=date(2026, 1, 1),
+            ),
+        )
+    assert exc_overflow.value.status_code == 400
+    assert "cannot exceed" in exc_overflow.value.detail
+
+
 def test_payroll_non_existent_employee_structure_rejected(db_session, edge_fixture):
     # PAYROLL EDGE 5: Creating salary structure for non-existent employee returns 404
     admin1 = edge_fixture["admin1"]

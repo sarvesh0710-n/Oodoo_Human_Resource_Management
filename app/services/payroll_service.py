@@ -36,6 +36,21 @@ def create_salary_structure(
             detail=f"Employee with ID {data.employee_id} not found",
         )
 
+    # DESIGN DECISION: Monetary values must be non-negative and bounded <= $10,000,000.00 to prevent scientific notation string display overflow and Postgres Numeric(10,2) overflow
+    MAX_MONETARY_VALUE = Decimal("10000000.00")
+    if (
+        data.basic_salary < 0
+        or data.allowances < 0
+        or data.deductions < 0
+        or data.basic_salary > MAX_MONETARY_VALUE
+        or data.allowances > MAX_MONETARY_VALUE
+        or data.deductions > MAX_MONETARY_VALUE
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Monetary amounts must be non-negative and cannot exceed ${MAX_MONETARY_VALUE:,.2f}",
+        )
+
     # DESIGN DECISION: Negative net salary (deductions > basic + allowances) is invalid and rejected with HTTP 400
     gross = data.basic_salary + data.allowances
     if data.deductions > gross:
