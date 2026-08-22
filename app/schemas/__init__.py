@@ -100,6 +100,7 @@ class AttendanceCheckOut(BaseModel):
 class AttendanceRead(BaseModel):
     id: int
     employee_id: int
+    employee_name: Optional[str] = None
     date: date
     check_in: Optional[time] = None
     check_out: Optional[time] = None

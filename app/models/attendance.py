@@ -28,3 +28,9 @@ class Attendance(Base):
     employee: Mapped["Employee"] = relationship(
         "Employee", back_populates="attendance_records"
     )
+
+    @property
+    def employee_name(self) -> str:
+        if self.employee:
+            return f"{self.employee.first_name} {self.employee.last_name}"
+        return f"Employee #{self.employee_id}"
