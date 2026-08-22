@@ -1,57 +1,58 @@
-/* Dayflow HRMS — Standard Windows Green Theme (No Gradients, Fully Mobile Responsive) */
+/* Dayflow HRMS — Modern Organic Green Theme (Curved Edges & Minimal Pill Controls) */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-  /* Green Color Palette (Zero Gradients) */
+  /* Green Color Palette */
   --green-dark: #14382B;
   --green-primary: #1E4D3B;
   --green-hover: #163A2C;
   --green-accent: #2A6B53;
   --green-light: #E8F2EE;
   --green-subtle: #F0F6F3;
-  --green-border: #B8D4C8;
+  --green-border: #C8DCD2;
 
   /* Neutral & Surface Colors */
   --bg-main: #F4F7F5;
   --surface-card: #FFFFFF;
-  --border-main: #D2DDD7;
-  --border-subtle: #E2EAE5;
+  --border-main: #E2EAE5;
+  --border-subtle: #EDF3EF;
   
   --text-main: #1A2B23;
   --text-muted: #556E63;
   --text-light: #80968B;
 
-  /* Standard Windows Status Colors */
+  /* Status Colors */
   --status-present-bg: #E2F0EA;
   --status-present-text: #144A34;
-  --status-present-border: #A9D4C2;
+  --status-present-border: #B2DEC9;
 
   --status-absent-bg: #FBEBEB;
   --status-absent-text: #8B2020;
-  --status-absent-border: #F0B8B8;
+  --status-absent-border: #F7C6C6;
 
   --status-leave-bg: #E8F4F8;
   --status-leave-text: #1A5A72;
-  --status-leave-border: #B2D8E5;
+  --status-leave-border: #C1E1EC;
 
   --status-pending-bg: #FFF8E6;
   --status-pending-text: #7A5B0B;
-  --status-pending-border: #EAD498;
+  --status-pending-border: #F2DEAA;
 
   --status-halfday-bg: #F3EBF7;
   --status-halfday-text: #5B246D;
-  --status-halfday-border: #D7B9E3;
+  --status-halfday-border: #E2C9ED;
 
-  /* Windows Standard Spacing & Radius */
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-pill: 999px;
+  /* Organic Curved Radius Tokens */
+  --radius-sm: 12px;
+  --radius-md: 18px;
+  --radius-lg: 24px;
+  --radius-xl: 28px;
+  --radius-pill: 9999px;
 
-  /* Standard Elevation Shadows (No Gradients) */
-  --shadow-sm: 0 1px 3px rgba(20, 56, 43, 0.08);
-  --shadow-md: 0 4px 12px rgba(20, 56, 43, 0.1);
-  --shadow-lg: 0 8px 24px rgba(20, 56, 43, 0.14);
+  /* Elevation Shadows */
+  --shadow-sm: 0 2px 8px rgba(20, 56, 43, 0.04);
+  --shadow-md: 0 6px 20px rgba(20, 56, 43, 0.07);
+  --shadow-lg: 0 12px 32px rgba(20, 56, 43, 0.12);
 
   /* Typography */
   --font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
@@ -78,7 +79,7 @@ body {
 h1, h2, h3, h4 {
   color: var(--green-dark);
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
 }
 
 h1 { font-size: 1.75rem; line-height: 1.25; }
@@ -86,11 +87,11 @@ h2 { font-size: 1.4rem; line-height: 1.3; }
 h3 { font-size: 1.15rem; line-height: 1.35; }
 h4 { font-size: 0.95rem; line-height: 1.4; }
 
-/* Navbar */
+/* Header Navbar */
 .navbar {
   background: var(--green-dark);
   color: white;
-  padding: 12px 20px;
+  padding: 14px 24px;
   position: sticky;
   top: 0;
   z-index: 1000;
@@ -103,14 +104,14 @@ h4 { font-size: 0.95rem; line-height: 1.4; }
 .brand-container {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   text-decoration: none;
   color: white;
 }
 
 .brand-icon {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   background: var(--green-accent);
   border-radius: var(--radius-sm);
   display: flex;
@@ -118,7 +119,7 @@ h4 { font-size: 0.95rem; line-height: 1.4; }
   justify-content: center;
   color: white;
   font-weight: 700;
-  font-size: 1.1rem;
+  font-size: 1.15rem;
 }
 
 .brand-title {
@@ -129,10 +130,10 @@ h4 { font-size: 0.95rem; line-height: 1.4; }
 
 .brand-tag {
   font-size: 0.7rem;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.18);
   color: #E8F2EE;
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
   font-weight: 600;
 }
 
@@ -145,9 +146,9 @@ h4 { font-size: 0.95rem; line-height: 1.4; }
 .role-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 3px 8px;
-  border-radius: var(--radius-sm);
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
   font-size: 0.75rem;
   font-weight: 600;
 }
@@ -155,18 +156,16 @@ h4 { font-size: 0.95rem; line-height: 1.4; }
 .role-badge.employee {
   background: var(--green-light);
   color: var(--green-primary);
-  border: 1px solid var(--green-border);
 }
 
 .role-badge.admin {
   background: var(--green-primary);
   color: white;
-  border: 1px solid var(--green-dark);
 }
 
 .user-avatar {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   background: var(--green-accent);
   color: white;
   border-radius: 50%;
@@ -177,14 +176,14 @@ h4 { font-size: 0.95rem; line-height: 1.4; }
   font-size: 0.85rem;
 }
 
-/* Mobile Hamburger Menu Toggle Button */
+/* Mobile Toggle */
 .mobile-toggle {
   display: none;
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: none;
   color: white;
-  padding: 6px 10px;
-  border-radius: var(--radius-sm);
+  padding: 8px;
+  border-radius: var(--radius-pill);
   cursor: pointer;
 }
 
@@ -196,13 +195,13 @@ h4 { font-size: 0.95rem; line-height: 1.4; }
 }
 
 .sidebar {
-  width: 240px;
-  padding: 16px 12px;
+  width: 250px;
+  padding: 20px 14px;
   border-right: 1px solid var(--border-main);
   background: var(--surface-card);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   transition: transform 0.3s ease;
 }
 
@@ -212,19 +211,20 @@ h4 { font-size: 0.95rem; line-height: 1.4; }
   letter-spacing: 0.05em;
   color: var(--text-muted);
   font-weight: 700;
-  margin: 12px 0 4px 8px;
+  margin: 14px 0 6px 10px;
 }
 
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  border-radius: var(--radius-sm);
+  gap: 12px;
+  padding: 10px 16px;
+  border-radius: var(--radius-pill);
   color: var(--text-muted);
   text-decoration: none;
   font-weight: 500;
   font-size: 0.875rem;
+  transition: all 0.2s ease;
 }
 
 .nav-item svg {
@@ -236,12 +236,14 @@ h4 { font-size: 0.95rem; line-height: 1.4; }
 .nav-item:hover {
   background: var(--green-subtle);
   color: var(--green-primary);
+  transform: translateX(2px);
 }
 
 .nav-item.active {
   background: var(--green-primary);
   color: white;
   font-weight: 600;
+  box-shadow: var(--shadow-sm);
 }
 
 .nav-item.active svg {
@@ -250,26 +252,31 @@ h4 { font-size: 0.95rem; line-height: 1.4; }
 
 .main-content {
   flex: 1;
-  padding: 20px 24px;
+  padding: 24px 28px;
   width: 100%;
 }
 
-/* Standard Windows Card - Minimal & Frameless */
+/* Curved Minimalist Cards */
 .card {
   background: #FFFFFF;
   border: none;
-  border-radius: var(--radius-md);
-  padding: 20px 24px;
-  box-shadow: none;
-  margin-bottom: 20px;
+  border-radius: var(--radius-lg);
+  padding: 24px 28px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 24px;
+  transition: box-shadow 0.2s ease;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
-  padding-bottom: 10px;
+  margin-bottom: 18px;
+  padding-bottom: 12px;
   border-bottom: 1px solid var(--border-subtle);
 }
 
@@ -284,18 +291,18 @@ h4 { font-size: 0.95rem; line-height: 1.4; }
   color: var(--text-muted);
 }
 
-/* Grids & Layouts */
-.grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
-.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+/* Grids */
+.grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
 
-/* Status Pills (Solid Green Theme Variants) */
+/* Status Pills (Full Pill Curve) */
 .status-pill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 3px 10px;
-  border-radius: var(--radius-sm);
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
   font-size: 0.775rem;
   font-weight: 600;
 }
@@ -310,100 +317,110 @@ h4 { font-size: 0.95rem; line-height: 1.4; }
 .status-pill.present, .status-pill.approved {
   background: var(--status-present-bg);
   color: var(--status-present-text);
-  border: 1px solid var(--status-present-border);
 }
 .status-pill.present::before, .status-pill.approved::before { background: var(--status-present-text); }
 
 .status-pill.absent, .status-pill.rejected {
   background: var(--status-absent-bg);
   color: var(--status-absent-text);
-  border: 1px solid var(--status-absent-border);
 }
 .status-pill.absent::before, .status-pill.rejected::before { background: var(--status-absent-text); }
 
 .status-pill.on-leave, .status-pill.leave {
   background: var(--status-leave-bg);
   color: var(--status-leave-text);
-  border: 1px solid var(--status-leave-border);
 }
 .status-pill.on-leave::before, .status-pill.leave::before { background: var(--status-leave-text); }
 
 .status-pill.pending {
   background: var(--status-pending-bg);
   color: var(--status-pending-text);
-  border: 1px solid var(--status-pending-border);
 }
 .status-pill.pending::before { background: var(--status-pending-text); }
 
 .status-pill.half_day {
   background: var(--status-halfday-bg);
   color: var(--status-halfday-text);
-  border: 1px solid var(--status-halfday-border);
 }
 .status-pill.half_day::before { background: var(--status-halfday-text); }
 
-/* Standard Windows Buttons */
+/* Minimalist Pill Actions (Button-Free Aesthetic) */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 7px 14px;
-  border-radius: var(--radius-sm);
+  gap: 8px;
+  padding: 9px 20px;
+  border-radius: var(--radius-pill);
   font-family: var(--font-family);
   font-weight: 600;
   font-size: 0.85rem;
   cursor: pointer;
-  border: 1px solid transparent;
+  border: none;
+  outline: none;
   text-decoration: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn:active {
+  transform: scale(0.98);
 }
 
 .btn-primary {
   background: var(--green-primary);
   color: white;
-  border-color: var(--green-dark);
+  box-shadow: 0 4px 12px rgba(30, 77, 59, 0.18);
 }
 .btn-primary:hover {
   background: var(--green-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(30, 77, 59, 0.24);
 }
 
 .btn-terracotta {
   background: var(--green-accent);
   color: white;
-  border-color: var(--green-primary);
+  box-shadow: 0 4px 12px rgba(42, 107, 83, 0.18);
 }
 .btn-terracotta:hover {
   background: var(--green-primary);
+  transform: translateY(-1px);
 }
 
 .btn-secondary {
-  background: #FFFFFF;
-  color: var(--text-main);
-  border: 1px solid var(--border-main);
+  background: var(--green-light);
+  color: var(--green-primary);
 }
 .btn-secondary:hover {
-  background: var(--green-subtle);
-  border-color: var(--green-border);
-  color: var(--green-primary);
+  background: var(--green-border);
+  color: var(--green-dark);
+  transform: translateY(-1px);
 }
 
 .btn-outline-danger {
-  background: transparent;
-  color: #8B2020;
-  border: 1px solid #F0B8B8;
+  background: var(--status-absent-bg);
+  color: var(--status-absent-text);
 }
 .btn-outline-danger:hover {
-  background: #FBEBEB;
+  background: #F4D3D3;
+  transform: translateY(-1px);
 }
 
 .btn-sm {
-  padding: 4px 10px;
+  padding: 6px 14px;
   font-size: 0.775rem;
 }
 
-/* Forms & Control Inputs */
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Curved Form Controls */
 .form-group {
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .form-group label {
@@ -411,31 +428,33 @@ h4 { font-size: 0.95rem; line-height: 1.4; }
   font-weight: 600;
   font-size: 0.825rem;
   color: var(--green-dark);
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .form-control, input[type="text"], input[type="email"], input[type="password"], input[type="date"], input[type="number"], select, textarea {
   width: 100%;
-  padding: 7px 10px;
-  background: #FFFFFF;
-  border: 1px solid var(--border-main);
-  border-radius: var(--radius-sm);
+  padding: 10px 16px;
+  background: var(--green-subtle);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
   font-family: var(--font-family);
   font-size: 0.875rem;
   color: var(--text-main);
   outline: none;
+  transition: all 0.2s ease;
 }
 
 .form-control:focus, input:focus, select:focus, textarea:focus {
+  background: #FFFFFF;
   border-color: var(--green-primary);
-  box-shadow: 0 0 0 2px var(--green-light);
+  box-shadow: 0 0 0 3px rgba(30, 77, 59, 0.12);
 }
 
-/* Tables */
+/* Curved Tables */
 .table-responsive {
   width: 100%;
   overflow-x: auto;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   border: none;
   -webkit-overflow-scrolling: touch;
 }
@@ -453,14 +472,14 @@ table.organic-table th {
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--border-main);
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-subtle);
   text-align: left;
   white-space: nowrap;
 }
 
 table.organic-table td {
-  padding: 8px 12px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--border-subtle);
   color: var(--text-main);
   vertical-align: middle;
@@ -468,167 +487,31 @@ table.organic-table td {
 }
 
 table.organic-table tr:hover td {
-  background: var(--green-light);
-}
-
-/* Calendar Grid */
-.calendar-header {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  text-align: center;
-  font-weight: 700;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  margin-bottom: 6px;
-}
-
-.calendar-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 6px;
-}
-
-.calendar-day {
-  background: #FFFFFF;
-  border: 1px solid var(--border-main);
-  border-radius: var(--radius-sm);
-  padding: 6px;
-  min-height: 75px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
-.calendar-day:hover {
-  border-color: var(--green-primary);
   background: var(--green-subtle);
 }
 
-.calendar-day.empty {
-  background: transparent;
-  border-color: transparent;
-}
-
-.day-number {
-  font-weight: 700;
-  font-size: 0.8rem;
-  color: var(--green-dark);
-}
-
-/* Custom Green Theme DatePicker Widget */
-.custom-date-picker-wrapper {
-  position: relative;
-  width: 100%;
-}
-
-.custom-date-input {
-  cursor: pointer;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%231E4D3B' stroke-width='2'%3E%3Crect x='3' y='4' width='18' height='18' rx='2'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-  padding-right: 32px !important;
-}
-
-.custom-calendar-popover {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  z-index: 3000;
-  width: 280px;
-  background: var(--surface-card);
-  border: 1px solid var(--green-border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-lg);
-  padding: 12px;
-  margin-top: 4px;
-  display: none;
-}
-
-.custom-calendar-popover.open {
-  display: block;
-}
-
-.calendar-pop-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-  font-weight: 700;
-  color: var(--green-dark);
-  font-size: 0.85rem;
-}
-
-.calendar-pop-nav {
-  background: var(--green-light);
-  border: none;
-  color: var(--green-primary);
-  border-radius: var(--radius-sm);
-  padding: 2px 8px;
-  cursor: pointer;
-  font-weight: 700;
-}
-.calendar-pop-nav:hover {
-  background: var(--green-border);
-}
-
-.calendar-pop-weekdays {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  text-align: center;
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: var(--text-muted);
-  margin-bottom: 4px;
-}
-
-.calendar-pop-days {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 2px;
-}
-
-.calendar-pop-day {
-  text-align: center;
-  padding: 6px 0;
-  font-size: 0.8rem;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  color: var(--text-main);
-}
-
-.calendar-pop-day:hover {
-  background: var(--green-light);
-  color: var(--green-primary);
-}
-
-.calendar-pop-day.selected {
-  background: var(--green-primary);
-  color: white;
-  font-weight: 700;
-}
-
-.calendar-pop-day.empty {
-  cursor: default;
-  background: transparent;
-}
-
-/* Stat Widgets */
+/* Stat Widgets with Curved Edges */
 .stat-widget {
   background: var(--surface-card);
-  border: 1px solid var(--border-main);
-  border-radius: var(--radius-md);
-  padding: 12px 16px;
+  border: none;
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   box-shadow: var(--shadow-sm);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-widget:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 .stat-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-sm);
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -651,19 +534,20 @@ table.organic-table tr:hover td {
   font-weight: 500;
 }
 
-/* Modal Dialog */
+/* Modal Dialog with Deep Curved Edges */
 .modal-backdrop {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(20, 56, 43, 0.4);
+  background: rgba(20, 56, 43, 0.35);
+  backdrop-filter: blur(4px);
   z-index: 1050;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 12px;
+  padding: 16px;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.25s ease;
 }
 
 .modal-backdrop.open {
@@ -673,36 +557,42 @@ table.organic-table tr:hover td {
 
 .modal-content {
   background: var(--surface-card);
-  border: 1px solid var(--border-main);
-  border-radius: var(--radius-md);
-  padding: 16px 20px;
-  max-width: 500px;
+  border: none;
+  border-radius: var(--radius-xl);
+  padding: 24px 28px;
+  max-width: 520px;
   width: 100%;
   box-shadow: var(--shadow-lg);
+  transform: scale(0.95);
+  transition: transform 0.25s ease;
 }
 
-/* Toast Notifications */
+.modal-backdrop.open .modal-content {
+  transform: scale(1);
+}
+
+/* Toast Notifications with Pill Shape */
 .toast-container {
   position: fixed;
-  bottom: 16px;
-  right: 16px;
+  bottom: 20px;
+  right: 20px;
   z-index: 2000;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .toast {
   background: var(--green-dark);
   color: white;
-  padding: 8px 14px;
-  border-radius: var(--radius-sm);
+  padding: 10px 18px;
+  border-radius: var(--radius-pill);
   font-weight: 500;
   font-size: 0.85rem;
   box-shadow: var(--shadow-md);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .toast.success { background: var(--green-primary); }
@@ -711,7 +601,7 @@ table.organic-table tr:hover td {
 /* 📱 MOBILE RESPONSIVE MEDIA QUERIES */
 @media (max-width: 768px) {
   .navbar {
-    padding: 10px 14px;
+    padding: 12px 16px;
   }
 
   .mobile-toggle {
@@ -730,8 +620,8 @@ table.organic-table tr:hover td {
     width: 100%;
     border-right: none;
     border-bottom: 1px solid var(--border-main);
-    display: none; /* Collapsible on mobile */
-    padding: 12px;
+    display: none;
+    padding: 14px;
   }
 
   .sidebar.mobile-open {
@@ -739,30 +629,23 @@ table.organic-table tr:hover td {
   }
 
   .main-content {
-    padding: 14px 12px;
+    padding: 16px 14px;
   }
 
   .grid-2, .grid-3, .grid-4 {
     grid-template-columns: 1fr;
-    gap: 12px;
+    gap: 14px;
   }
 
   .card {
-    padding: 12px 14px;
-    margin-bottom: 12px;
-  }
-
-  .calendar-day {
-    min-height: 55px;
-    padding: 4px;
-  }
-
-  .day-number {
-    font-size: 0.75rem;
+    padding: 16px 18px;
+    border-radius: var(--radius-md);
+    margin-bottom: 16px;
   }
 
   .modal-content {
-    padding: 14px;
+    padding: 18px 20px;
+    border-radius: var(--radius-lg);
     max-width: 95%;
   }
 
