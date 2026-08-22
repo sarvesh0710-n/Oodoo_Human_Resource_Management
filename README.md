@@ -8,7 +8,6 @@
 [![Auth](https://img.shields.io/badge/Auth-JWT%20%2B%20HttpOnly%20Cookies-000000.svg?logo=jsonwebtokens&logoColor=white)](https://jwt.io/)
 [![Design](https://img.shields.io/badge/Design-Organic%20Curved%20Green-1E4D3B.svg)](#ui-design-system)
 [![Tests](https://img.shields.io/badge/Tests-50%20Passing-brightgreen.svg?logo=pytest&logoColor=white)](./docs/testing_guide.md)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 **Dayflow HRMS** is an enterprise-grade, human-centric Human Resource Management System built with **FastAPI**, **SQLAlchemy 2.0**, **Alembic**, and **Jinja2 Server-Side Rendered Templates**. It provides a robust, production-ready solution to digitize all core HR operations — employee lifecycle management, department hierarchies, attendance logging, leave request workflows, salary structuring, immutable payslip generation, interactive leave analytics charts, and comprehensive audit logging.
 
@@ -347,7 +346,3 @@ Explore the in-depth documentation in the [`docs/`](docs/) directory:
 - [**Testing & QA Guide**](docs/testing_guide.md) — Test architecture, fixtures, and verification inventory.
 
 ---
-
-## License
-
-This project is licensed under the [MIT License](LICENSE).
