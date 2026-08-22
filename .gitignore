@@ -1,16 +1,26 @@
-# Byte-compiled / optimized files
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Python bytecode and cache
 __pycache__/
 *.py[cod]
 *$py.class
-
-# C extensions
 *.so
 
-# Distribution / packaging
-.Python
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Python build and packaging
 build/
-develop-eggs/
 dist/
+develop-eggs/
 downloads/
 eggs/
 .eggs/
@@ -23,37 +33,44 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+.Python
 
-# Virtual environments
-venv/
-.venv/
-env/
-ENV/
-env.bak/
-venv.bak/
-
-# IDEs and Editors
-.idea/
-.vscode/
-*.swp
-*.swo
-*~
-.project
-.pydevproject
-.settings/
-
-# Odoo specific runtime / data files
-*.log
-filestore/
-sessions/
-*.dump
-
-# Operating System files
-.DS_Store
-Thumbs.db
-
-# Test & Coverage artifacts
+# Testing and coverage
+.pytest_cache/
 .coverage
 .coverage.*
 htmlcov/
-.pytest_cache/
+.tox/
+.nox/
+
+# Type checking and linting
+.mypy_cache/
+.pyright/
+.ruff_cache/
+
+# Alembic temporary files
+alembic/*.pyc
+alembic/versions/*.pyc
+
+# IDEs and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
+
+# PostgreSQL local data
+postgres_data/
+pgdata/
