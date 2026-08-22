@@ -14,10 +14,20 @@ from app.models.department import Department
 from app.web import views
 from datetime import date
 
+from fastapi.middleware.cors import CORSMiddleware
+
 # Ensure tables are created for quick testing
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Dayflow HRMS", version="1.0.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
